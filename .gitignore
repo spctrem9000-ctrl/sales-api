@@ -1,0 +1,29 @@
+# Local SQLite database (dev only, NOT for production)
+sales_monitor.db
+*.db
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+.env
+
+# Local env file (contains secrets)
+.env.local
+
+# PyInstaller
+dist/
+build/
+*.spec
+
+# Logs
+*.log
+logs/
+
+# Firebase
+serviceAccountKey.json

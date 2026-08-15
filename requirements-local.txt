@@ -1,0 +1,11 @@
+# Local dev requirements - SQLite only (no C/Rust compiler needed)
+# Python 3.14 compatible pre-built wheels
+fastapi
+uvicorn[standard]
+sqlalchemy[asyncio]
+aiosqlite
+python-jose[cryptography]
+passlib[bcrypt]
+pydantic
+python-multipart
+# asyncpg is NOT here (only needed on Railway for PostgreSQL)

@@ -19,7 +19,10 @@ DATABASE_URL = _raw_url if _raw_url else "sqlite+aiosqlite:///./sales_monitor.db
 # Set connect_args conditionally based on the dialect
 kwargs = {}
 if "postgresql" in DATABASE_URL:
-    kwargs["connect_args"] = {"statement_cache_size": 0}
+    kwargs["connect_args"] = {
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+    }
 elif "sqlite" in DATABASE_URL:
     kwargs["connect_args"] = {"check_same_thread": False}
 

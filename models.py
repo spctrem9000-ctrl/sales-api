@@ -61,6 +61,7 @@ class Branch(Base):
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), nullable=False)
     max_disc_perc: Mapped[float] = mapped_column(Float, nullable=False, default=100.0, comment="أقصى نسبة خصم مسموحة")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    device_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     last_seen: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 

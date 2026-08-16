@@ -36,7 +36,7 @@ async def get_or_create_branch(db: AsyncSession, branch_name: str, api_key: str)
     branch = result.scalar_one_or_none()
 
     if branch is None:
-        branch = Branch(name=branch_name, company_id=company.id)
+        branch = Branch(name=branch_name, company_id=company.id , is_active=False)
         db.add(branch)
         await db.flush()
         

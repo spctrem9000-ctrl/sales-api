@@ -56,7 +56,7 @@ class InvoiceItemPayload(BaseModel):
     total: float
 
 class AlertPayload(BaseModel):
-    ih_serial: str 
+    ih_serial: str | int
     ih_code: str
     order_date: str
     disc_perc: float

@@ -174,7 +174,7 @@ async def sync_alerts(
     new_alerts_list = []
     has_changes = False
     
-    ih_serials = [int(inv.ih_serial) for inv in payload.alerts if inv.disc_perc > branch.max_disc_perc]
+    ih_serials = [str(inv.ih_serial) for inv in payload.alerts if inv.disc_perc > branch.max_disc_perc]
     if not ih_serials:
         return SyncResponse(status="ok", message="لا يوجد فواتير تجاوزت نسبة الخصم المحددة.")
         
@@ -186,7 +186,7 @@ async def sync_alerts(
     
     for inv in payload.alerts:
         if inv.disc_perc > branch.max_disc_perc:
-            alert = existing_alerts.get(int(inv.ih_serial))
+            alert = existing_alerts.get(str(inv.ih_serial))
             if alert:
                 if abs(alert.disc_perc - inv.disc_perc) > 0.001 or alert.invoice_items != [item.model_dump() for item in inv.items]:
                     alert.disc_perc = inv.disc_perc
@@ -201,7 +201,7 @@ async def sync_alerts(
             else:
                 new_alert = Alert(
                     branch_id=branch.id,
-                    ih_serial=int(inv.ih_serial),
+                    ih_serial=str(inv.ih_serial),
                     ih_code=inv.ih_code,
                     order_date=inv.order_date,
                     total=inv.total,

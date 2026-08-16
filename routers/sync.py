@@ -1,4 +1,6 @@
 import secrets
+import asyncio
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status, Header
@@ -122,44 +124,38 @@ from models import User
 
 from fastapi import BackgroundTasks
 
-async def send_fcm_notifications(new_alerts_list, branch_name, branch_id):
-    from database import get_db
+fcm_logger = logging.getLogger("uvicorn.error")
+
+async def send_fcm_notifications(alerts_data: list[dict], tokens: list[str], branch_name: str):
+    """Send FCM push notifications. Receives plain dicts + tokens (no DB access needed)."""
     try:
-        async for db in get_db():
-            users_res = await db.execute(
-                select(User).join(User.branches)
-                .where(
-                    Branch.id == branch_id, 
-                    User.fcm_token != None,
-                    User.is_superadmin == False
-                )
+        if not tokens or not firebase_admin._apps:
+            return
+
+        for a in alerts_data:
+            notif_image = "https://sales-api-ngdi.onrender.com/static/notification_image.jpg"
+            msg = messaging.MulticastMessage(
+                notification=messaging.Notification(
+                    title=f"⚠️ خصم {a['disc_perc']:.1f}%",
+                    body=f"فاتورة #{a['ih_code']} في فرع {branch_name}",
+                    image=notif_image,
+                ),
+                data={
+                    "alert_id": str(a.get('id', 0)),
+                    "action": "open_alert"
+                },
+                tokens=tokens,
             )
-            tokens = list(set([u.fcm_token for u in users_res.scalars().all() if u.fcm_token]))
+            response = await asyncio.to_thread(messaging.send_each_for_multicast, msg)
+            fcm_logger.info(f"FCM Multicast sent: {response.success_count} success, {response.failure_count} failure")
             
-            if tokens and firebase_admin._apps:
-                messages = []
-                for a in new_alerts_list:
-                    notif_image = "https://sales-api-ngdi.onrender.com/static/notification_image.jpg"
-                    msg = messaging.MulticastMessage(
-                        notification=messaging.Notification(
-                            title=f"⚠️ خصم {a.disc_perc:.1f}%",
-                            body=f"فاتورة #{a.ih_code} في فرع {branch_name}",
-                            image=notif_image,
-                        ),
-                        data={
-                            "alert_id": str(a.id),
-                            "action": "open_alert"
-                        },
-                        tokens=tokens,
-                    )
-                    messages.append(msg)
-                
-                for msg in messages:
-                    response = await asyncio.to_thread(messaging.send_each_for_multicast, msg)
-                    print(f"FCM Multicast sent: {response.success_count} success, {response.failure_count} failure")
-            break
+            # Log failed tokens for debugging
+            if response.failure_count > 0:
+                for idx, resp in enumerate(response.responses):
+                    if not resp.success:
+                        fcm_logger.warning(f"FCM failed for token {tokens[idx][:20]}...: {resp.exception}")
     except Exception as e:
-        print(f"Error sending FCM: {e}")
+        fcm_logger.error(f"Error sending FCM: {e}")
 
 @router.post("/alerts")
 async def sync_alerts(
@@ -223,7 +219,26 @@ async def sync_alerts(
         await db.commit()
         
     if new_alerts_list:
-        background_tasks.add_task(send_fcm_notifications, new_alerts_list, branch.name, branch.id)
+        # Collect FCM tokens from the SAME db session (avoids PgBouncer issues)
+        users_res = await db.execute(
+            select(User).join(User.branches)
+            .where(
+                Branch.id == branch.id, 
+                User.fcm_token != None,
+                User.is_superadmin == False
+            )
+        )
+        tokens = list(set([u.fcm_token for u in users_res.scalars().all() if u.fcm_token]))
+        
+        # Convert ORM objects to plain dicts (safe for background task)
+        alerts_data = [
+            {"id": a.id, "disc_perc": a.disc_perc, "ih_code": a.ih_code}
+            for a in new_alerts_list
+        ]
+        
+        if tokens:
+            background_tasks.add_task(send_fcm_notifications, alerts_data, tokens, branch.name)
+        
         # Trigger UI refresh on connected mobile apps
         await manager.broadcast({"event": "refresh_dashboard"})
         

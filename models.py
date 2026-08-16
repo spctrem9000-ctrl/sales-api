@@ -123,7 +123,7 @@ class Alert(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"), nullable=False)
-    ih_serial: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    ih_serial: Mapped[str] = mapped_column(String(50), nullable=False, default="")
     ih_code: Mapped[str] = mapped_column(String(50), nullable=False)
     order_date: Mapped[str] = mapped_column(String(30), nullable=False)
     total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)

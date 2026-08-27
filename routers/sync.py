@@ -635,7 +635,7 @@ async def get_sync_state(
 
     is_full_sync = full_sync.lower() == "true"
     days_back = 31 if is_full_sync else 2
-    cutoff_datetime = datetime.now(timezone.utc) - timedelta(days=days_back)
+    cutoff_datetime = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_back)
     cutoff_date_str = cutoff_datetime.strftime("%Y-%m-%d")
 
     base_subq = select(

@@ -73,27 +73,197 @@ async def get_dashboard(
     current_user: User = Depends(get_current_user),
 ):
     """
-    يرجع أحدث snapshot لكل فرع اليوم أو لتاريخ محدد + المجاميع الكلية.
-    محمي بـ JWT.
+    Returns the latest shift snapshot for each branch.
     """
-    if date:
-        try:
-            target_date = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-        except ValueError:
-            target_date = datetime.now(timezone.utc)
-    else:
-        target_date = datetime.now(timezone.utc)
-
-    today = target_date.strftime("%Y-%m-%d")
-    last_week_date = (target_date - timedelta(days=7)).strftime("%Y-%m-%d")
     online_cutoff = datetime.now(timezone.utc) - timedelta(minutes=ONLINE_THRESHOLD_MINUTES)
 
-    # 1. Today's Data
+    # 1. Latest Data
+    subq = (
+        select(SaleSnapshot.branch_id, func.max(SaleSnapshot.id).label("max_id"))
+        .join(Branch, Branch.id == SaleSnapshot.branch_id)
+        .where(
+            Branch.id.in_(current_user.branch_ids) if not current_user.is_superadmin else True
+        )
+        .group_by(SaleSnapshot.branch_id)
+        .subquery()
+    )
+
+    result = await db.execute(
+        select(Branch, SaleSnapshot)
+        .join(SaleSnapshot, Branch.id == SaleSnapshot.branch_id)
+        .join(subq, SaleSnapshot.id == subq.c.max_id)
+        .where(Branch.id.in_(current_user.branch_ids) if not current_user.is_superadmin else True)
+    )
+    rows = result.all()
+
+    # We will skip last week's data for trends since we are looking at arbitrary latest shifts
+    branches: list[BranchSummary] = []
+    grand_gross = 0.0
+    grand_disc = 0.0
+    grand_disc_l = 0.0
+    grand_net = 0.0
+    grand_visa = 0.0
+    grand_takeaway_count = 0
+    grand_takeaway_total = 0.0
+    grand_delivery_count = 0
+    grand_delivery_total = 0.0
+    grand_dlv_service_total = 0.0
+    total_orders = 0
+    grand_metrics = {}
+
+    branch_map = {}
+    for b, snap in rows:
+        if b.id not in branch_map:
+            branch_map[b.id] = {"branch": b, "snaps": []}
+        branch_map[b.id]["snaps"].append(snap)
+
+    synced_ids = {b.id for b, _ in rows}
+
+    for b_data in branch_map.values():
+        branch = b_data["branch"]
+        snaps = b_data["snaps"]
+        
+        is_online = (
+            branch.last_seen is not None
+            and branch.last_seen.replace(tzinfo=timezone.utc) >= online_cutoff
+        )
+        
+        b_gross = sum(s.gross_total for s in snaps)
+        b_disc = sum(s.disc_value for s in snaps)
+        b_disc_lines = sum(s.disc_lines_value for s in snaps)
+        b_net = sum(s.net_total for s in snaps)
+        b_visa = sum(s.visa_total for s in snaps)
+        b_takeaway_count = sum(s.takeaway_count for s in snaps)
+        b_takeaway_total = sum(s.takeaway_total for s in snaps)
+        b_delivery_count = sum(s.delivery_count for s in snaps)
+        b_delivery_total = sum(s.delivery_total for s in snaps)
+        b_dlv_service = sum(s.dlv_service_total for s in snaps)
+        b_orders = sum(s.order_count for s in snaps)
+
+        b_metrics = {}
+        for s in snaps:
+            b_metrics = merge_metrics(b_metrics, s.metrics_json)
+            
+        b_metrics = format_metrics(b_metrics)
+
+        branches.append(
+            BranchSummary(
+                branch_name=branch.name,
+                day_id=snaps[0].day_id if snaps else None,
+                business_date=snaps[0].business_date if snaps else None,
+                gross_total=b_gross,
+                disc_value=b_disc,
+                disc_lines_value=b_disc_lines,
+                net_total=b_net,
+                visa_total=b_visa,
+                takeaway_count=b_takeaway_count,
+                takeaway_total=b_takeaway_total,
+                delivery_count=b_delivery_count,
+                delivery_total=b_delivery_total,
+                dlv_service_total=b_dlv_service,
+                order_count=b_orders,
+                avg_order_value=(b_gross / b_orders) if b_orders > 0 else 0.0,
+                last_sync=branch.last_seen,
+                is_online=is_online,
+                metrics=b_metrics,
+                trend_perc=None
+            )
+        )
+
+        grand_gross += b_gross
+        grand_disc += b_disc
+        grand_disc_l += b_disc_lines
+        grand_net += b_net
+        grand_visa += b_visa
+        grand_takeaway_count += b_takeaway_count
+        grand_takeaway_total += b_takeaway_total
+        grand_delivery_count += b_delivery_count
+        grand_delivery_total += b_delivery_total
+        grand_dlv_service_total += b_dlv_service
+        total_orders += b_orders
+        grand_metrics = merge_metrics(grand_metrics, b_metrics)
+
+    # 3. Add Offline Branches
+    if current_user.is_superadmin:
+        all_branches_q = select(Branch)
+    else:
+        all_branches_q = select(Branch).where(Branch.id.in_(current_user.branch_ids))
+        
+    all_branches = (await db.execute(all_branches_q)).scalars().all()
+    
+    for branch in all_branches:
+        if branch.id not in synced_ids:
+            is_online = (
+                branch.last_seen is not None
+                and branch.last_seen.replace(tzinfo=timezone.utc) >= online_cutoff
+            )
+            branches.append(
+                BranchSummary(
+                    branch_name=branch.name,
+                    day_id=None,
+                    business_date=None,
+                    gross_total=0.0,
+                    disc_value=0.0,
+                    disc_lines_value=0.0,
+                    net_total=0.0,
+                    visa_total=0.0,
+                    takeaway_count=0, takeaway_total=0.0,
+                    delivery_count=0, delivery_total=0.0,
+                    dlv_service_total=0.0,
+                    order_count=0,
+                    avg_order_value=0.0,
+                    last_sync=branch.last_seen,
+                    is_online=is_online,
+                    metrics=None,
+                    trend_perc=None
+                )
+            )
+
+    grand_metrics = format_metrics(grand_metrics)
+
+    return DashboardResponse(
+        grand_gross_total=grand_gross,
+        grand_disc=grand_disc,
+        grand_disc_lines=grand_disc_l,
+        grand_net_total=grand_net,
+        grand_visa_total=grand_visa,
+        grand_takeaway_count=grand_takeaway_count,
+        grand_takeaway_total=grand_takeaway_total,
+        grand_delivery_count=grand_delivery_count,
+        grand_delivery_total=grand_delivery_total,
+        grand_dlv_service_total=grand_dlv_service_total,
+        total_orders=total_orders,
+        branches=branches,
+        business_date="آخر وردية (مباشر)",
+        updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        grand_metrics=grand_metrics,
+        grand_trend_perc=None
+    )
+
+
+from pydantic import BaseModel
+
+class AggregateRequest(BaseModel):
+    dates: list[str]
+
+@router.post("/aggregate", response_model=DashboardResponse)
+async def aggregate_dashboard(
+    req: AggregateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Aggregates dashboard totals for a given list of dates.
+    """
+    if not req.dates:
+        raise HTTPException(status_code=400, detail="No dates provided")
+
+    # 1. Fetch latest snapshot for each branch/day in the given dates
     subq = (
         select(SaleSnapshot.branch_id, SaleSnapshot.day_id, func.max(SaleSnapshot.id).label("max_id"))
         .join(Branch, Branch.id == SaleSnapshot.branch_id)
         .where(
-            SaleSnapshot.business_date == today,
+            SaleSnapshot.business_date.in_(req.dates),
             Branch.id.in_(current_user.branch_ids) if not current_user.is_superadmin else True
         )
         .group_by(SaleSnapshot.branch_id, SaleSnapshot.day_id)
@@ -107,30 +277,6 @@ async def get_dashboard(
         .where(Branch.id.in_(current_user.branch_ids) if not current_user.is_superadmin else True)
     )
     rows = result.all()
-
-    # 2. Last week's Data for trends
-    subq_lw = (
-        select(SaleSnapshot.branch_id, SaleSnapshot.day_id, func.max(SaleSnapshot.id).label("max_id"))
-        .join(Branch, Branch.id == SaleSnapshot.branch_id)
-        .where(
-            SaleSnapshot.business_date == last_week_date,
-            Branch.id.in_(current_user.branch_ids) if not current_user.is_superadmin else True
-        )
-        .group_by(SaleSnapshot.branch_id, SaleSnapshot.day_id)
-        .subquery()
-    )
-    result_lw = await db.execute(
-        select(SaleSnapshot)
-        .join(subq_lw, SaleSnapshot.id == subq_lw.c.max_id)
-        .join(Branch, Branch.id == SaleSnapshot.branch_id)
-        .where(Branch.id.in_(current_user.branch_ids) if not current_user.is_superadmin else True)
-    )
-    lw_rows = result_lw.scalars().all()
-    
-    lw_totals_by_branch = {}
-    for snap in lw_rows:
-        lw_totals_by_branch[snap.branch_id] = lw_totals_by_branch.get(snap.branch_id, 0.0) + snap.gross_total
-    grand_lw_gross_total = sum(lw_totals_by_branch.values())
 
     branches: list[BranchSummary] = []
     grand_gross = 0.0
@@ -146,124 +292,72 @@ async def get_dashboard(
     total_orders = 0
     grand_metrics = {}
 
-    # Group today's rows by Branch
     branch_map = {}
     for b, snap in rows:
         if b.id not in branch_map:
             branch_map[b.id] = {"branch": b, "snaps": []}
         branch_map[b.id]["snaps"].append(snap)
 
-    synced_ids = set()
-
     for b_data in branch_map.values():
         branch = b_data["branch"]
         snaps = b_data["snaps"]
-        synced_ids.add(branch.id)
-        
-        is_online = (
-            branch.last_seen is not None
-            and branch.last_seen.replace(tzinfo=timezone.utc) >= online_cutoff
-        )
         
         b_gross = sum(s.gross_total for s in snaps)
         b_disc = sum(s.disc_value for s in snaps)
         b_disc_lines = sum(s.disc_lines_value for s in snaps)
         b_net = sum(s.net_total for s in snaps)
         b_visa = sum(s.visa_total for s in snaps)
-        b_takeaway_c = sum(s.takeaway_count for s in snaps)
-        b_takeaway_t = sum(s.takeaway_total for s in snaps)
-        b_dlv_c = sum(s.delivery_count for s in snaps)
-        b_dlv_t = sum(s.delivery_total for s in snaps)
+        b_takeaway_count = sum(s.takeaway_count for s in snaps)
+        b_takeaway_total = sum(s.takeaway_total for s in snaps)
+        b_delivery_count = sum(s.delivery_count for s in snaps)
+        b_delivery_total = sum(s.delivery_total for s in snaps)
         b_dlv_service = sum(s.dlv_service_total for s in snaps)
         b_orders = sum(s.order_count for s in snaps)
-        
-        avg = b_net / b_orders if b_orders > 0 else 0.0
 
         b_metrics = {}
         for s in snaps:
-            if s.metrics_json:
-                b_metrics = merge_metrics(b_metrics, s.metrics_json)
+            b_metrics = merge_metrics(b_metrics, s.metrics_json)
+            
         b_metrics = format_metrics(b_metrics)
-        
-        trend_perc = None
-        if branch.id in lw_totals_by_branch and lw_totals_by_branch[branch.id] > 0:
-            lw_gross = lw_totals_by_branch[branch.id]
-            trend_perc = ((b_gross - lw_gross) / lw_gross) * 100.0
 
-        branches.append(BranchSummary(
-            branch_name=branch.name,
-            gross_total=b_gross,
-            disc_value=b_disc,
-            disc_lines_value=b_disc_lines,
-            net_total=b_net,
-            visa_total=b_visa,
-            takeaway_count=b_takeaway_c,
-            takeaway_total=b_takeaway_t,
-            delivery_count=b_dlv_c,
-            delivery_total=b_dlv_t,
-            dlv_service_total=b_dlv_service,
-            order_count=b_orders,
-            avg_order_value=avg,
-            last_sync=branch.last_seen,
-            is_online=is_online,
-            metrics=b_metrics,
-            trend_perc=trend_perc
-        ))
+        branches.append(
+            BranchSummary(
+                branch_name=branch.name,
+                day_id=None,
+                business_date=None,
+                gross_total=b_gross,
+                disc_value=b_disc,
+                disc_lines_value=b_disc_lines,
+                net_total=b_net,
+                visa_total=b_visa,
+                takeaway_count=b_takeaway_count,
+                takeaway_total=b_takeaway_total,
+                delivery_count=b_delivery_count,
+                delivery_total=b_delivery_total,
+                dlv_service_total=b_dlv_service,
+                order_count=b_orders,
+                avg_order_value=(b_gross / b_orders) if b_orders > 0 else 0.0,
+                last_sync=branch.last_seen,
+                is_online=False, # Doesn't make sense for aggregated past days
+                metrics=b_metrics,
+                trend_perc=None
+            )
+        )
 
         grand_gross += b_gross
         grand_disc += b_disc
         grand_disc_l += b_disc_lines
         grand_net += b_net
         grand_visa += b_visa
-        grand_takeaway_count += b_takeaway_c
-        grand_takeaway_total += b_takeaway_t
-        grand_delivery_count += b_dlv_c
-        grand_delivery_total += b_dlv_t
+        grand_takeaway_count += b_takeaway_count
+        grand_takeaway_total += b_takeaway_total
+        grand_delivery_count += b_delivery_count
+        grand_delivery_total += b_delivery_total
         grand_dlv_service_total += b_dlv_service
         total_orders += b_orders
         grand_metrics = merge_metrics(grand_metrics, b_metrics)
 
     grand_metrics = format_metrics(grand_metrics)
-    
-    branch_query = select(Branch)
-    if not current_user.is_superadmin:
-        branch_query = branch_query.where(Branch.id.in_(current_user.branch_ids))
-
-    all_branches_result = await db.execute(branch_query)
-    all_branches = all_branches_result.scalars().all()
-    synced_ids = {b.id for b, _ in rows}
-
-    for branch in all_branches:
-        if branch.id not in synced_ids:
-            trend_perc = None
-            if branch.id in lw_totals_by_branch and lw_totals_by_branch[branch.id] > 0:
-                trend_perc = -100.0
-                
-            branches.append(BranchSummary(
-                branch_name=branch.name,
-                gross_total=0.0,
-                disc_value=0.0,
-                disc_lines_value=0.0,
-                net_total=0.0,
-                visa_total=0.0,
-                takeaway_count=0,
-                takeaway_total=0.0,
-                delivery_count=0,
-                delivery_total=0.0,
-                dlv_service_total=0.0,
-                order_count=0,
-                avg_order_value=0.0,
-                last_sync=branch.last_seen,
-                is_online=False,
-                metrics={},
-                trend_perc=trend_perc
-            ))
-
-    branches.sort(key=lambda b: b.net_total, reverse=True)
-    
-    grand_trend_perc = None
-    if grand_lw_gross_total > 0:
-        grand_trend_perc = ((grand_gross - grand_lw_gross_total) / grand_lw_gross_total) * 100.0
 
     return DashboardResponse(
         grand_gross_total=grand_gross,
@@ -278,10 +372,10 @@ async def get_dashboard(
         grand_dlv_service_total=grand_dlv_service_total,
         total_orders=total_orders,
         branches=branches,
-        business_date=today,
-        updated_at=datetime.now(timezone.utc),
+        business_date=f"{len(req.dates)} Days Selected",
+        updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
         grand_metrics=grand_metrics,
-        grand_trend_perc=grand_trend_perc,
+        grand_trend_perc=None
     )
 
 

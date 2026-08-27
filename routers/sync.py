@@ -605,6 +605,7 @@ async def sync_alerts(
 @router.get("/state")
 async def get_sync_state(
     branch_name: str,
+    full_sync: str = "false",
     db: AsyncSession = Depends(get_db),
     x_api_key: str = Header(..., alias="X-API-Key"),
     x_device_id: str = Header(..., alias="X-Device-ID"),
@@ -630,22 +631,22 @@ async def get_sync_state(
     # --------------------------------------------------------
 
     from sqlalchemy import func
+    from datetime import timedelta
 
-    subq = (
-        select(
-            SaleSnapshot.day_id,
-            func.max(
-                SaleSnapshot.id
-            ).label("max_id")
-        )
-        .where(
-            SaleSnapshot.branch_id == branch.id
-        )
-        .group_by(
-            SaleSnapshot.day_id
-        )
-        .subquery()
+    is_full_sync = full_sync.lower() == "true"
+    days_back = 31 if is_full_sync else 2
+    cutoff_datetime = datetime.now(timezone.utc) - timedelta(days=days_back)
+    cutoff_date_str = cutoff_datetime.strftime("%Y-%m-%d")
+
+    base_subq = select(
+        SaleSnapshot.day_id,
+        func.max(SaleSnapshot.id).label("max_id")
+    ).where(
+        SaleSnapshot.branch_id == branch.id,
+        SaleSnapshot.business_date >= cutoff_date_str
     )
+
+    subq = base_subq.group_by(SaleSnapshot.day_id).subquery()
 
     result = await db.execute(
 
@@ -714,16 +715,15 @@ async def get_sync_state(
     # Fetch synced alerts
     # --------------------------------------------------------
 
-    alerts_result = await db.execute(
-
-        select(
-            Alert.ih_serial,
-            Alert.disc_perc
-        )
-        .where(
-            Alert.branch_id == branch.id
-        )
+    base_alerts_query = select(
+        Alert.ih_serial,
+        Alert.disc_perc
+    ).where(
+        Alert.branch_id == branch.id,
+        Alert.created_at >= cutoff_datetime
     )
+
+    alerts_result = await db.execute(base_alerts_query)
 
     synced_alerts = {
         str(row.ih_serial): row.disc_perc

@@ -76,6 +76,8 @@ class SyncAlertsPayload(BaseModel):
 
 class BranchSummary(BaseModel):
     branch_name:      str
+    day_id:           int | None = None
+    business_date:    str | None = None
     gross_total:      float
     disc_value:       float
     disc_lines_value: float

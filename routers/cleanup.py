@@ -175,6 +175,23 @@ async def debug5():
             return {"log": f.read()}
     return {"log": "No log file found"}
 
+@router.get("/debug6")
+async def debug6(db: AsyncSession = Depends(get_db)):
+    from models import User
+    from sqlalchemy.orm import selectinload
+    from routers.dashboard import get_dashboard
+    
+    # Get user 6 with branches loaded EXACTLY like get_current_user
+    result = await db.execute(
+        select(User).options(selectinload(User.company), selectinload(User.branches)).where(User.id == 6)
+    )
+    user = result.scalars().first()
+    
+    # Call get_dashboard directly
+    dash_response = await get_dashboard(date=None, db=db, current_user=user)
+    
+    return dash_response
+
 @router.get("/remove_duplicates")
 async def remove_duplicates(db: AsyncSession = Depends(get_db)):
     from models import Branch, SaleSnapshot

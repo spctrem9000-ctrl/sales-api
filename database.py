@@ -27,7 +27,11 @@ if "postgresql" in DATABASE_URL:
         "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4().hex}__",
     }
     kwargs["poolclass"] = pool.NullPool
-    kwargs["prepared_statement_cache_size"] = 0
+    # Append to URL query string as required by SQLAlchemy for asyncpg
+    if "?" in DATABASE_URL:
+        DATABASE_URL += "&prepared_statement_cache_size=0"
+    else:
+        DATABASE_URL += "?prepared_statement_cache_size=0"
 elif "sqlite" in DATABASE_URL:
     kwargs["connect_args"] = {"check_same_thread": False}
 

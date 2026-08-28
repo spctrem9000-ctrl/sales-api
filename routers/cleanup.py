@@ -76,6 +76,8 @@ async def debug2(db: AsyncSession = Depends(get_db)):
     return {
         "user_branch_ids": branch_ids,
         "main_rows_count": len(rows),
+    }
+
 @router.get("/debug3")
 async def debug3(db: AsyncSession = Depends(get_db)):
     from models import Branch, SaleSnapshot, User

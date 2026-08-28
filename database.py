@@ -16,6 +16,8 @@ elif _raw_url.startswith("postgresql://") and "+asyncpg" not in _raw_url:
 # If no external DB is configured, use local SQLite
 DATABASE_URL = _raw_url if _raw_url else "sqlite+aiosqlite:///./sales_monitor.db"
 
+from sqlalchemy import pool
+
 # Set connect_args conditionally based on the dialect
 kwargs = {}
 if "postgresql" in DATABASE_URL:
@@ -23,13 +25,13 @@ if "postgresql" in DATABASE_URL:
         "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
     }
+    kwargs["poolclass"] = pool.NullPool
 elif "sqlite" in DATABASE_URL:
     kwargs["connect_args"] = {"check_same_thread": False}
 
 engine = create_async_engine(
     DATABASE_URL, 
     echo=False, 
-    pool_pre_ping=True,
     **kwargs
 )
 

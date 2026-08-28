@@ -17,6 +17,7 @@ elif _raw_url.startswith("postgresql://") and "+asyncpg" not in _raw_url:
 DATABASE_URL = _raw_url if _raw_url else "sqlite+aiosqlite:///./sales_monitor.db"
 
 from sqlalchemy import pool
+import uuid
 
 # Set connect_args conditionally based on the dialect
 kwargs = {}
@@ -24,6 +25,7 @@ if "postgresql" in DATABASE_URL:
     kwargs["connect_args"] = {
         "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4().hex}__",
     }
     kwargs["poolclass"] = pool.NullPool
 elif "sqlite" in DATABASE_URL:

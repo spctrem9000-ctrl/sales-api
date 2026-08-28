@@ -320,9 +320,19 @@ async def aggregate_dashboard(
             branch_map[b.id] = {"branch": b, "snaps": []}
         branch_map[b.id]["snaps"].append(snap)
 
+    online_cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
+    
+    synced_ids = set()
+
     for b_data in branch_map.values():
         branch = b_data["branch"]
         snaps = b_data["snaps"]
+        synced_ids.add(branch.id)
+        
+        is_online = (
+            branch.last_seen is not None
+            and branch.last_seen.replace(tzinfo=timezone.utc) >= online_cutoff
+        )
         
         b_gross = sum(s.gross_total for s in snaps)
         b_disc = sum(s.disc_value for s in snaps)
@@ -360,7 +370,7 @@ async def aggregate_dashboard(
                 order_count=b_orders,
                 avg_order_value=(b_gross / b_orders) if b_orders > 0 else 0.0,
                 last_sync=branch.last_seen,
-                is_online=False, # Doesn't make sense for aggregated past days
+                is_online=is_online,
                 metrics=b_metrics,
                 trend_perc=None
             )
@@ -378,6 +388,42 @@ async def aggregate_dashboard(
         grand_dlv_service_total += b_dlv_service
         total_orders += b_orders
         grand_metrics = merge_metrics(grand_metrics, b_metrics)
+
+    # Add missing branches with 0 sales
+    if current_user.is_superadmin:
+        all_branches_q = select(Branch)
+    else:
+        all_branches_q = select(Branch).where(Branch.id.in_(current_user.branch_ids))
+        
+    all_branches = (await db.execute(all_branches_q)).scalars().all()
+    
+    for branch in all_branches:
+        if branch.id not in synced_ids:
+            is_online = (
+                branch.last_seen is not None
+                and branch.last_seen.replace(tzinfo=timezone.utc) >= online_cutoff
+            )
+            branches.append(
+                BranchSummary(
+                    branch_name=branch.name,
+                    day_id=None,
+                    business_date=None,
+                    gross_total=0.0,
+                    disc_value=0.0,
+                    disc_lines_value=0.0,
+                    net_total=0.0,
+                    visa_total=0.0,
+                    takeaway_count=0, takeaway_total=0.0,
+                    delivery_count=0, delivery_total=0.0,
+                    dlv_service_total=0.0,
+                    order_count=0,
+                    avg_order_value=0.0,
+                    last_sync=branch.last_seen,
+                    is_online=is_online,
+                    metrics={},
+                    trend_perc=None
+                )
+            )
 
     grand_metrics = format_metrics(grand_metrics)
 

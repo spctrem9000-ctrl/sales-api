@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from database import init_db
-from routers import auth, sync, dashboard, admin, fix_db
+from routers import auth, sync, dashboard, admin, fix_db, cleanup
 from websocket_manager import manager
 
 import os

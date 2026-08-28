@@ -425,6 +425,7 @@ async def get_history(
             
         if branch.name not in daily_data[b_date]:
             daily_data[b_date][branch.name] = {
+                "branch_name": branch.name,
                 "net_total": 0.0, "visa_total": 0.0, 
                 "takeaway_total": 0.0, "delivery_total": 0.0, "dlv_service_total": 0.0,
                 "order_count": 0, "metrics": {}

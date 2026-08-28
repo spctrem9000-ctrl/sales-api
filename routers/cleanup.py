@@ -151,6 +151,22 @@ async def debug3(db: AsyncSession = Depends(get_db)):
         import traceback
         return {"status": "error", "error": str(e), "trace": traceback.format_exc()}
 
+@router.get("/debug4")
+async def debug4(db: AsyncSession = Depends(get_db)):
+    from models import User
+    from sqlalchemy.orm import selectinload
+    
+    result = await db.execute(
+        select(User).options(selectinload(User.company), selectinload(User.branches)).where(User.id == 6)
+    )
+    user = result.scalars().first()
+    
+    return {
+        "user_id": user.id,
+        "branches_loaded": [b.id for b in user.branches],
+        "branch_ids_property": user.branch_ids
+    }
+    
 @router.get("/remove_duplicates")
 async def remove_duplicates(db: AsyncSession = Depends(get_db)):
     from models import Branch, SaleSnapshot

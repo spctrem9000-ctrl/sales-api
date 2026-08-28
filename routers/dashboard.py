@@ -58,12 +58,26 @@ def format_metrics(metrics: dict) -> dict:
         
     hs = metrics.get('hourly_sales')
     if isinstance(hs, dict):
-        valid_hs = {k: float(v) for k, v in hs.items() if isinstance(v, (int, float, str)) and str(v).replace('.','',1).isdigit()}
-        metrics['hourly_sales'] = valid_hs
+        def hs_sort_key(hr_str):
+            try:
+                parts = hr_str.split(" ")
+                hr = int(parts[0].split(":")[0])
+                am_pm = parts[1]
+                if am_pm == "ص":
+                    hr_24 = 0 if hr == 12 else hr
+                else:
+                    hr_24 = 12 if hr == 12 else hr + 12
+                return (hr_24 - 6) % 24
+            except:
+                return 999
+                
+        valid_hs = {k: float(v) for k, v in hs.items() if isinstance(v, (int, float, str)) and str(v).replace('.','',1).isdigit() and float(v) > 0}
+        sorted_hs = dict(sorted(valid_hs.items(), key=lambda item: hs_sort_key(item[0])))
+        metrics['hourly_sales'] = sorted_hs
         
     hsr = metrics.get('hourly_sales_raw')
     if isinstance(hsr, dict):
-        valid_hsr = {k: float(v) for k, v in hsr.items() if isinstance(v, (int, float, str)) and str(v).replace('.','',1).isdigit()}
+        valid_hsr = {k: float(v) for k, v in hsr.items() if isinstance(v, (int, float, str)) and str(v).replace('.','',1).isdigit() and float(v) > 0}
         metrics['hourly_sales_raw'] = valid_hsr
 
     ti = metrics.get('top_invoices')

@@ -264,8 +264,7 @@ async def get_dashboard(
     import traceback
     try:
         with open("debug_daily.txt", "w", encoding="utf-8") as f:
-            f.write(f"USER: {current_user.username} | DATE: {date} | ROWS: {len(rows)} | BRANCHES RET: {len(branches)}
-")
+            f.write(f"USER: {current_user.username} | DATE: {date} | ROWS: {len(rows)} | BRANCHES RET: {len(branches)}\n")
     except Exception as e:
         pass
 
@@ -409,8 +408,7 @@ async def aggregate_dashboard(
     import traceback
     try:
         with open("debug_monthly.txt", "w", encoding="utf-8") as f:
-            f.write(f"USER: {current_user.username} | DATES: {len(req.dates)} | ROWS: {len(rows)} | BRANCHES RET: {len(branches)}
-")
+            f.write(f"USER: {current_user.username} | DATES: {len(req.dates)} | ROWS: {len(rows)} | BRANCHES RET: {len(branches)}\n")
     except Exception as e:
         pass
 

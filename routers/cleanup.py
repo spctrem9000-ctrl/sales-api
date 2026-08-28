@@ -192,6 +192,27 @@ async def debug6(db: AsyncSession = Depends(get_db)):
     
     return dash_response
 
+@router.get("/debug7")
+async def debug7(db: AsyncSession = Depends(get_db)):
+    from models import User
+    from sqlalchemy.orm import selectinload
+    from routers.dashboard import aggregate_dashboard, AggregateRequest
+    from datetime import datetime
+    
+    # Get user 6
+    result = await db.execute(
+        select(User).options(selectinload(User.company), selectinload(User.branches)).where(User.id == 6)
+    )
+    user = result.scalars().first()
+    
+    # Generate dates for current month
+    now = datetime.now()
+    dates = [f"{now.year}-{now.month:02d}-{i:02d}" for i in range(1, now.day + 1)]
+    
+    req = AggregateRequest(dates=dates)
+    dash_response = await aggregate_dashboard(req=req, db=db, current_user=user)
+    return dash_response
+
 @router.get("/remove_duplicates")
 async def remove_duplicates(db: AsyncSession = Depends(get_db)):
     from models import Branch, SaleSnapshot

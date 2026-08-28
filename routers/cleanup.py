@@ -7,18 +7,31 @@ router = APIRouter(prefix="/cleanup", tags=["cleanup"])
 
 @router.get("/fix_orphans")
 async def fix_orphans(db: AsyncSession = Depends(get_db)):
-    from models import Branch, User
-    # Find branches with no users
+    from models import Branch, User, SaleSnapshot
     branches = (await db.execute(select(Branch))).scalars().all()
     users = (await db.execute(select(User))).scalars().all()
     
     fixed = 0
+    debug_info = {"users": [], "branches": []}
+    
+    for u in users:
+        debug_info["users"].append({
+            "id": u.id, "username": u.username, "superadmin": u.is_superadmin, "company_id": u.company_id
+        })
+        
     for b in branches:
-        res = await db.execute(text("SELECT COUNT(*) FROM user_branches WHERE branch_id = :bid"), {"bid": b.id})
-        count = res.scalar()
-        if count == 0:
+        res = await db.execute(text("SELECT user_id FROM user_branches WHERE branch_id = :bid"), {"bid": b.id})
+        assigned_users = [r[0] for r in res.all()]
+        
+        snap_count = (await db.execute(text("SELECT COUNT(*) FROM sale_snapshots WHERE branch_id = :bid"), {"bid": b.id})).scalar()
+        
+        debug_info["branches"].append({
+            "id": b.id, "name": b.name, "device_id": b.device_id, 
+            "company_id": b.company_id, "users": assigned_users, "snapshots": snap_count
+        })
+        
+        if not assigned_users:
             for u in users:
-                # PostgreSQL specific on conflict ignore
                 try:
                     await db.execute(text("INSERT INTO user_branches (user_id, branch_id) VALUES (:uid, :bid)"), {"uid": u.id, "bid": b.id})
                 except:
@@ -26,7 +39,9 @@ async def fix_orphans(db: AsyncSession = Depends(get_db)):
             fixed += 1
             
     await db.commit()
-    return {"status": "ok", "fixed_orphans": fixed}
+    debug_info["status"] = "ok"
+    debug_info["fixed_orphans"] = fixed
+    return debug_info
 
 @router.get("/remove_duplicates")
 async def remove_duplicates(db: AsyncSession = Depends(get_db)):

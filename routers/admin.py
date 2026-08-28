@@ -284,18 +284,14 @@ async def get_company_branches(company_id: int, db: AsyncSession = Depends(get_d
     result = await db.execute(select(Branch).where(Branch.company_id == company_id))
     branches = result.scalars().all()
     
-    # Get last sync time for each branch
     res = []
     for b in branches:
-        # Query latest snapshot
-        snap = await db.execute(select(SaleSnapshot.snapshot_time).where(SaleSnapshot.branch_id == b.id).order_by(SaleSnapshot.snapshot_time.desc()).limit(1))
-        last_sync = snap.scalar_one_or_none()
         res.append(BranchResponse(
             id=b.id,
             name=b.name,
             created_at=b.created_at,
             is_active=b.is_active,
-            last_sync=last_sync
+            last_sync=b.last_seen
         ))
     return res
 

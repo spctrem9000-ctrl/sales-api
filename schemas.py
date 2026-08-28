@@ -154,7 +154,7 @@ class HistoryResponse(BaseModel):
 class AlertResponse(BaseModel):
     id: int
     branch_name: str
-    ih_serial: int
+    ih_serial: str | None
     ih_code: str
     order_date: str
     disc_perc: float

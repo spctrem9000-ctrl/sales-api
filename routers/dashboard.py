@@ -236,19 +236,12 @@ async def get_dashboard(
                     avg_order_value=0.0,
                     last_sync=branch.last_seen,
                     is_online=is_online,
-                    metrics=b_metrics,
+                    metrics={},
                     trend_perc=None
                 )
             )
 
     grand_metrics = format_metrics(grand_metrics)
-
-    import traceback
-    try:
-        with open("debug_daily.txt", "w", encoding="utf-8") as f:
-            f.write(f"USER: {current_user.username} | DATE: {date} | ROWS: {len(rows)} | BRANCHES RET: {len(branches)}\n")
-    except Exception as e:
-        pass
 
     return DashboardResponse(
         grand_gross_total=grand_gross,
@@ -387,13 +380,6 @@ async def aggregate_dashboard(
         grand_metrics = merge_metrics(grand_metrics, b_metrics)
 
     grand_metrics = format_metrics(grand_metrics)
-
-    import traceback
-    try:
-        with open("debug_monthly.txt", "w", encoding="utf-8") as f:
-            f.write(f"USER: {current_user.username} | DATES: {len(req.dates)} | ROWS: {len(rows)} | BRANCHES RET: {len(branches)}\n")
-    except Exception as e:
-        pass
 
     return DashboardResponse(
         grand_gross_total=grand_gross,

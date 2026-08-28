@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from database import init_db
-from routers import auth, sync, dashboard, admin, fix_db, cleanup
+from routers import auth, sync, dashboard, admin, fix_db
 from websocket_manager import manager
 
 import os
@@ -96,7 +96,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(sync.router, prefix="/api/sync", tags=["Sync"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
-app.include_router(cleanup.router, prefix="/api", tags=["Cleanup"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(fix_db.router, prefix="/api/fix-db", tags=["Fix"])
 
@@ -114,7 +113,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     err_msg = f"Unhandled exception: {exc}\n{traceback.format_exc()}"
     logger.error(err_msg)
     from fastapi.responses import JSONResponse
-    return JSONResponse({"error": "Internal server error", "traceback": err_msg}, status_code=500)
+    return JSONResponse({"error": "Internal server error. Please try again later."}, status_code=500)
 
 
 from sqlalchemy import text

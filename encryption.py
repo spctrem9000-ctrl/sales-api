@@ -57,7 +57,7 @@ class EncryptedRoute(APIRoute):
             response: Response = await original_route_handler(request)
             
             # 3. Encrypt response body if JSON
-            if response.headers.get("content-type") == "application/json":
+            if response.headers.get("content-type", "").startswith("application/json"):
                 if hasattr(response, "body"):
                     try:
                         resp_json = json.loads(response.body)

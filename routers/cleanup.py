@@ -216,10 +216,14 @@ async def debug7(db: AsyncSession = Depends(get_db)):
 @router.get("/debug8")
 async def debug8():
     import os
-    if os.path.exists("dashboard_debug_response.txt"):
-        with open("dashboard_debug_response.txt", "r", encoding="utf-8") as f:
-            return {"log": f.read()}
-    return {"log": "No file"}
+    res = {}
+    if os.path.exists("debug_daily.txt"):
+        with open("debug_daily.txt", "r", encoding="utf-8") as f:
+            res["daily"] = f.read()
+    if os.path.exists("debug_monthly.txt"):
+        with open("debug_monthly.txt", "r", encoding="utf-8") as f:
+            res["monthly"] = f.read()
+    return res
 
 @router.get("/remove_duplicates")
 async def remove_duplicates(db: AsyncSession = Depends(get_db)):

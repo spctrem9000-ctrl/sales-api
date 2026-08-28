@@ -167,6 +167,14 @@ async def debug4(db: AsyncSession = Depends(get_db)):
         "branch_ids_property": user.branch_ids
     }
     
+@router.get("/debug5")
+async def debug5():
+    import os
+    if os.path.exists("dashboard_debug.txt"):
+        with open("dashboard_debug.txt", "r", encoding="utf-8") as f:
+            return {"log": f.read()}
+    return {"log": "No log file found"}
+
 @router.get("/remove_duplicates")
 async def remove_duplicates(db: AsyncSession = Depends(get_db)):
     from models import Branch, SaleSnapshot

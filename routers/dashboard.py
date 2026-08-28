@@ -96,6 +96,18 @@ async def get_dashboard(
     )
     rows = result.all()
 
+    # --- DEBUG LOGGING ---
+    try:
+        with open("dashboard_debug.txt", "w", encoding="utf-8") as f:
+            f.write(f"USER: {current_user.username} (ID: {current_user.id})\n")
+            f.write(f"SUPERADMIN: {current_user.is_superadmin}\n")
+            f.write(f"BRANCH_IDS: {current_user.branch_ids}\n")
+            f.write(f"DATE ARG: {date}\n")
+            f.write(f"ROWS COUNT: {len(rows)}\n")
+    except Exception:
+        pass
+    # ---------------------
+
     # We will skip last week's data for trends since we are looking at arbitrary latest shifts
     branches: list[BranchSummary] = []
     grand_gross = 0.0

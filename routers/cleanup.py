@@ -5,6 +5,29 @@ from database import get_db
 
 router = APIRouter(prefix="/cleanup", tags=["cleanup"])
 
+@router.get("/fix_orphans")
+async def fix_orphans(db: AsyncSession = Depends(get_db)):
+    from models import Branch, User
+    # Find branches with no users
+    branches = (await db.execute(select(Branch))).scalars().all()
+    users = (await db.execute(select(User))).scalars().all()
+    
+    fixed = 0
+    for b in branches:
+        res = await db.execute(text("SELECT COUNT(*) FROM user_branches WHERE branch_id = :bid"), {"bid": b.id})
+        count = res.scalar()
+        if count == 0:
+            for u in users:
+                # PostgreSQL specific on conflict ignore
+                try:
+                    await db.execute(text("INSERT INTO user_branches (user_id, branch_id) VALUES (:uid, :bid)"), {"uid": u.id, "bid": b.id})
+                except:
+                    pass
+            fixed += 1
+            
+    await db.commit()
+    return {"status": "ok", "fixed_orphans": fixed}
+
 @router.get("/remove_duplicates")
 async def remove_duplicates(db: AsyncSession = Depends(get_db)):
     from models import Branch, SaleSnapshot

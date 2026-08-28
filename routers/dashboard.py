@@ -53,9 +53,19 @@ def format_metrics(metrics: dict) -> dict:
     
     ts = metrics.get('top_sellers')
     if isinstance(ts, dict):
-        valid_ts = {k: float(v) for k, v in ts.items() if isinstance(v, (int, float, str)) and str(v).replace('.','',1).isdigit()}
+        valid_ts = {k: int(float(v)) for k, v in ts.items() if isinstance(v, (int, float, str)) and str(v).replace('.','',1).isdigit()}
         metrics['top_sellers'] = dict(sorted(valid_ts.items(), key=lambda item: item[1], reverse=True)[:5])
         
+    hs = metrics.get('hourly_sales')
+    if isinstance(hs, dict):
+        valid_hs = {k: float(v) for k, v in hs.items() if isinstance(v, (int, float, str)) and str(v).replace('.','',1).isdigit()}
+        metrics['hourly_sales'] = valid_hs
+        
+    hsr = metrics.get('hourly_sales_raw')
+    if isinstance(hsr, dict):
+        valid_hsr = {k: float(v) for k, v in hsr.items() if isinstance(v, (int, float, str)) and str(v).replace('.','',1).isdigit()}
+        metrics['hourly_sales_raw'] = valid_hsr
+
     ti = metrics.get('top_invoices')
     if isinstance(ti, list):
         valid_ti = [x for x in ti if isinstance(x, dict) and "total" in x]

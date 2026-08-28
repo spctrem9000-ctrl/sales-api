@@ -87,14 +87,24 @@ async def get_or_create_branch(
     # 3. Find Branch
     # --------------------------------------------------------
 
+    # Try finding by device_id first (so renaming works)
     result = await db.execute(
         select(Branch).where(
             Branch.company_id == company.id,
-            Branch.name == branch_name
-        )
+            Branch.device_id == device_id
+        ).order_by(Branch.id.asc())
     )
+    branch = result.scalars().first()
 
-    branch = result.scalar_one_or_none()
+    if not branch:
+        # Fallback to name
+        result = await db.execute(
+            select(Branch).where(
+                Branch.company_id == company.id,
+                Branch.name == branch_name
+            ).order_by(Branch.id.asc())
+        )
+        branch = result.scalars().first()
 
     # --------------------------------------------------------
     # 4. New Branch

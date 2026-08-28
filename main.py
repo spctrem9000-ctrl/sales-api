@@ -94,6 +94,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(sync.router, prefix="/api/sync", tags=["Sync"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
+app.include_router(cleanup.router, prefix="/api", tags=["Cleanup"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(fix_db.router, prefix="/api/fix-db", tags=["Fix"])
 

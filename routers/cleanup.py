@@ -213,6 +213,14 @@ async def debug7(db: AsyncSession = Depends(get_db)):
     dash_response = await aggregate_dashboard(req=req, db=db, current_user=user)
     return dash_response
 
+@router.get("/debug8")
+async def debug8():
+    import os
+    if os.path.exists("dashboard_debug_response.txt"):
+        with open("dashboard_debug_response.txt", "r", encoding="utf-8") as f:
+            return {"log": f.read()}
+    return {"log": "No file"}
+
 @router.get("/remove_duplicates")
 async def remove_duplicates(db: AsyncSession = Depends(get_db)):
     from models import Branch, SaleSnapshot

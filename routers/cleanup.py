@@ -40,54 +40,43 @@ async def fix_orphans(db: AsyncSession = Depends(get_db)):
             
     await db.commit()
     debug_info["status"] = "ok"
-    debug_info["fixed_orphans"] = fixed
-    return debug_info
-
 @router.get("/debug2")
 async def debug2(db: AsyncSession = Depends(get_db)):
     from models import Branch, SaleSnapshot, User
     from sqlalchemy import select, func
+    from sqlalchemy.orm import selectinload
     
-    # 1. Fetch user 6
-    user = (await db.execute(select(User).where(User.id == 6))).scalar_one_or_none()
+    # 1. Fetch user 6 using selectinload
+    user = (await db.execute(select(User).options(selectinload(User.branches)).where(User.id == 6))).scalar_one_or_none()
     if not user:
         return {"error": "user 6 not found"}
         
-    res = await db.execute(text("SELECT branch_id FROM user_branches WHERE user_id = 6"))
-    branch_ids = [r[0] for r in res.all()]
+    branch_ids = user.branch_ids
     
     # 2. Subquery
     subq = (
         select(SaleSnapshot.branch_id, func.max(SaleSnapshot.id).label("max_id"))
         .join(Branch, Branch.id == SaleSnapshot.branch_id)
         .where(
-            Branch.id.in_(branch_ids)
+            Branch.id.in_(branch_ids) if branch_ids else False
         )
         .group_by(SaleSnapshot.branch_id)
         .subquery()
     )
-    
-    # 3. Exec subq
-    subq_res = await db.execute(select(subq))
-    subq_rows = [{"branch_id": r[0], "max_id": r[1]} for r in subq_res.all()]
     
     # 4. Main query
     result = await db.execute(
         select(Branch, SaleSnapshot)
         .join(SaleSnapshot, Branch.id == SaleSnapshot.branch_id)
         .join(subq, SaleSnapshot.id == subq.c.max_id)
-        .where(Branch.id.in_(branch_ids))
+        .where(Branch.id.in_(branch_ids) if branch_ids else False)
     )
     rows = result.all()
     
     return {
         "user_branch_ids": branch_ids,
-        "subq_rows": subq_rows,
         "main_rows_count": len(rows),
-        "rows": [{"branch_id": b.id, "snap_id": s.id} for b, s in rows]
     }
-    
-@router.get("/remove_duplicates")
 async def remove_duplicates(db: AsyncSession = Depends(get_db)):
     from models import Branch, SaleSnapshot
     result = await db.execute(select(Branch).order_by(Branch.id.asc()))

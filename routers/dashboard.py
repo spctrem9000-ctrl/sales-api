@@ -207,7 +207,7 @@ async def get_dashboard(
                 dlv_service_total=b_dlv_service,
                 order_count=b_orders,
                 avg_order_value=(b_gross / b_orders) if b_orders > 0 else 0.0,
-                last_sync=branch.last_seen,
+                last_sync=branch.last_seen.replace(tzinfo=timezone.utc) if branch.last_seen else None,
                 is_online=is_online,
                 metrics=b_metrics,
                 trend_perc=None
@@ -256,7 +256,7 @@ async def get_dashboard(
                     dlv_service_total=0.0,
                     order_count=0,
                     avg_order_value=0.0,
-                    last_sync=branch.last_seen,
+                    last_sync=branch.last_seen.replace(tzinfo=timezone.utc) if branch.last_seen else None,
                     is_online=is_online,
                     metrics={},
                     trend_perc=None
@@ -391,7 +391,7 @@ async def aggregate_dashboard(
                 dlv_service_total=b_dlv_service,
                 order_count=b_orders,
                 avg_order_value=(b_gross / b_orders) if b_orders > 0 else 0.0,
-                last_sync=branch.last_seen,
+                last_sync=branch.last_seen.replace(tzinfo=timezone.utc) if branch.last_seen else None,
                 is_online=is_online,
                 metrics=b_metrics,
                 trend_perc=None
@@ -440,7 +440,7 @@ async def aggregate_dashboard(
                     dlv_service_total=0.0,
                     order_count=0,
                     avg_order_value=0.0,
-                    last_sync=branch.last_seen,
+                    last_sync=branch.last_seen.replace(tzinfo=timezone.utc) if branch.last_seen else None,
                     is_online=is_online,
                     metrics={},
                     trend_perc=None

@@ -291,7 +291,7 @@ async def get_company_branches(company_id: int, db: AsyncSession = Depends(get_d
             name=b.name,
             created_at=b.created_at,
             is_active=b.is_active,
-            last_sync=b.last_seen
+            last_sync=b.last_seen.replace(tzinfo=timezone.utc) if b.last_seen else None
         ))
     return res
 

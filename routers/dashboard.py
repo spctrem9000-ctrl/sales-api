@@ -58,6 +58,14 @@ def format_metrics(metrics: dict) -> dict:
         
     hs = metrics.get('hourly_sales')
     if isinstance(hs, dict):
+        open_hour = 6
+        exact_open = metrics.get("exact_open_time")
+        if isinstance(exact_open, str) and len(exact_open) >= 19:
+            try:
+                open_hour = int(exact_open[11:13])
+            except:
+                pass
+                
         def hs_sort_key(hr_str):
             try:
                 parts = hr_str.split(" ")
@@ -67,7 +75,7 @@ def format_metrics(metrics: dict) -> dict:
                     hr_24 = 0 if hr == 12 else hr
                 else:
                     hr_24 = 12 if hr == 12 else hr + 12
-                return (hr_24 - 6) % 24
+                return (hr_24 - open_hour) % 24
             except:
                 return 999
                 

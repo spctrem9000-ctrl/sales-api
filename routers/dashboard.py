@@ -187,7 +187,7 @@ async def get_dashboard(
                 avg_order_value=(b_gross / b_orders) if b_orders > 0 else 0.0,
                 last_sync=branch.last_seen,
                 is_online=is_online,
-                metrics=b_metrics,
+                metrics=None,
                 trend_perc=None
             )
         )
@@ -258,7 +258,7 @@ async def get_dashboard(
         branches=branches,
         business_date="آخر وردية (مباشر)",
         updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
-        grand_metrics=grand_metrics,
+        grand_metrics=None,
         grand_trend_perc=None
     )
 
@@ -662,3 +662,4 @@ async def delete_read_alerts(
     )
     await db.commit()
     return {"status": "ok", "message": "Deleted read alerts"}
+

@@ -243,6 +243,13 @@ async def get_dashboard(
 
     grand_metrics = format_metrics(grand_metrics)
 
+    import traceback
+    try:
+        with open("debug_daily.txt", "w", encoding="utf-8") as f:
+            f.write(f"USER: {current_user.username} | DATE: {date} | ROWS: {len(rows)} | BRANCHES RET: {len(branches)}\n")
+    except Exception as e:
+        pass
+
     return DashboardResponse(
         grand_gross_total=grand_gross,
         grand_disc=grand_disc,
@@ -261,12 +268,6 @@ async def get_dashboard(
         grand_metrics=None,
         grand_trend_perc=None
     )
-    import traceback
-    try:
-        with open("debug_daily.txt", "w", encoding="utf-8") as f:
-            f.write(f"USER: {current_user.username} | DATE: {date} | ROWS: {len(rows)} | BRANCHES RET: {len(branches)}\n")
-    except Exception as e:
-        pass
 
 
 from pydantic import BaseModel
@@ -387,6 +388,13 @@ async def aggregate_dashboard(
 
     grand_metrics = format_metrics(grand_metrics)
 
+    import traceback
+    try:
+        with open("debug_monthly.txt", "w", encoding="utf-8") as f:
+            f.write(f"USER: {current_user.username} | DATES: {len(req.dates)} | ROWS: {len(rows)} | BRANCHES RET: {len(branches)}\n")
+    except Exception as e:
+        pass
+
     return DashboardResponse(
         grand_gross_total=grand_gross,
         grand_disc=grand_disc,
@@ -405,12 +413,6 @@ async def aggregate_dashboard(
         grand_metrics=grand_metrics,
         grand_trend_perc=None
     )
-    import traceback
-    try:
-        with open("debug_monthly.txt", "w", encoding="utf-8") as f:
-            f.write(f"USER: {current_user.username} | DATES: {len(req.dates)} | ROWS: {len(rows)} | BRANCHES RET: {len(branches)}\n")
-    except Exception as e:
-        pass
 
 
 @router.get("/history")

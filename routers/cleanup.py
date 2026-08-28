@@ -76,7 +76,80 @@ async def debug2(db: AsyncSession = Depends(get_db)):
     return {
         "user_branch_ids": branch_ids,
         "main_rows_count": len(rows),
-    }
+@router.get("/debug3")
+async def debug3(db: AsyncSession = Depends(get_db)):
+    from models import Branch, SaleSnapshot, User
+    from sqlalchemy import select, func
+    from datetime import datetime, timezone, timedelta
+    from schemas import BranchSummary
+    import json
+    
+    def format_metrics(metrics_json):
+        if not metrics_json: return {}
+        if isinstance(metrics_json, str):
+            try:
+                return json.loads(metrics_json)
+            except:
+                return {}
+        return metrics_json
+
+    user = (await db.execute(select(User).where(User.id == 6))).scalar_one_or_none()
+    res = await db.execute(text("SELECT branch_id FROM user_branches WHERE user_id = 6"))
+    branch_ids = [r[0] for r in res.all()]
+    
+    subq = (
+        select(SaleSnapshot.branch_id, func.max(SaleSnapshot.id).label("max_id"))
+        .join(Branch, Branch.id == SaleSnapshot.branch_id)
+        .where(Branch.id.in_(branch_ids) if branch_ids else False)
+        .group_by(SaleSnapshot.branch_id)
+        .subquery()
+    )
+    
+    result = await db.execute(
+        select(Branch, SaleSnapshot)
+        .join(SaleSnapshot, Branch.id == SaleSnapshot.branch_id)
+        .join(subq, SaleSnapshot.id == subq.c.max_id)
+        .where(Branch.id.in_(branch_ids) if branch_ids else False)
+    )
+    rows = result.all()
+    
+    branches = []
+    online_cutoff = datetime.now(timezone.utc) - timedelta(minutes=15)
+    
+    try:
+        for b, snap in rows:
+            is_online = b.last_seen and b.last_seen.replace(tzinfo=timezone.utc) >= online_cutoff
+            b_metrics = format_metrics(snap.metrics_json)
+            
+            branches.append(
+                BranchSummary(
+                    branch_name=b.name,
+                    day_id=snap.day_id,
+                    business_date=snap.business_date,
+                    gross_total=snap.gross_total,
+                    disc_value=snap.disc_value,
+                    disc_lines_value=snap.disc_lines_value,
+                    net_total=snap.net_total,
+                    visa_total=snap.visa_total,
+                    takeaway_count=snap.takeaway_count,
+                    takeaway_total=snap.takeaway_total,
+                    delivery_count=snap.delivery_count,
+                    delivery_total=snap.delivery_total,
+                    dlv_service_total=snap.dlv_service_total,
+                    order_count=snap.order_count,
+                    avg_order_value=(snap.gross_total / snap.order_count) if snap.order_count > 0 else 0.0,
+                    last_sync=b.last_seen,
+                    is_online=is_online,
+                    metrics=b_metrics,
+                    trend_perc=None
+                ).model_dump()
+            )
+        return {"status": "ok", "branches": branches}
+    except Exception as e:
+        import traceback
+        return {"status": "error", "error": str(e), "trace": traceback.format_exc()}
+
+@router.get("/remove_duplicates")
 async def remove_duplicates(db: AsyncSession = Depends(get_db)):
     from models import Branch, SaleSnapshot
     result = await db.execute(select(Branch).order_by(Branch.id.asc()))

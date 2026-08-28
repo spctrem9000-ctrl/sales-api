@@ -680,19 +680,17 @@ async def get_sync_state(
         if s.metrics_json:
 
             try:
-
-                metrics = json.loads(
-                    s.metrics_json
-                )
+                if isinstance(s.metrics_json, dict):
+                    metrics = s.metrics_json
+                else:
+                    metrics = json.loads(s.metrics_json)
 
                 day_flag = (
                     1
                     if metrics.get("is_closed")
                     else 0
                 )
-
-            except:
-
+            except Exception as e:
                 pass
 
         shifts[str(s.day_id)] = {

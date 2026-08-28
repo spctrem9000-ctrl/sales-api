@@ -686,9 +686,9 @@ async def get_sync_state(
                     metrics = json.loads(s.metrics_json)
 
                 day_flag = (
-                    1
+                    0
                     if metrics.get("is_closed")
-                    else 0
+                    else 1
                 )
             except Exception as e:
                 pass

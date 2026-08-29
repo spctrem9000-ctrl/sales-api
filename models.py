@@ -64,6 +64,7 @@ class Branch(Base):
     device_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     last_seen: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    offline_notified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     company: Mapped["Company"] = relationship(back_populates="branches")
     users: Mapped[list["User"]] = relationship(secondary=user_branches, back_populates="branches")

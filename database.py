@@ -83,7 +83,8 @@ async def init_db():
         "ALTER TABLE alerts ADD disc_val FLOAT DEFAULT 0.0;",
         "ALTER TABLE alerts ADD net_val FLOAT DEFAULT 0.0;",
         "UPDATE sale_snapshots SET business_date = TO_CHAR(snapshot_time, 'YYYY-MM-DD') WHERE business_date IS NULL;",
-        "INSERT INTO user_branches (user_id, branch_id) SELECT u.id, b.id FROM users u JOIN branches b ON u.company_id = b.company_id WHERE u.is_superadmin = FALSE ON CONFLICT DO NOTHING;"
+        "INSERT INTO user_branches (user_id, branch_id) SELECT u.id, b.id FROM users u JOIN branches b ON u.company_id = b.company_id WHERE u.is_superadmin = FALSE ON CONFLICT DO NOTHING;",
+        "ALTER TABLE branches ADD offline_notified BOOLEAN DEFAULT FALSE;"
     ]
     
     for query in migrations:

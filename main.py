@@ -64,12 +64,14 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to recreate database: {e}")
 
     # Start background tasks
-    from tasks import check_expirations
+    from tasks import check_expirations, check_offline_branches
     task = asyncio.create_task(check_expirations())
+    task2 = asyncio.create_task(check_offline_branches())
 
     yield
     
     task.cancel()
+    task2.cancel()
 
 
 app = FastAPI(

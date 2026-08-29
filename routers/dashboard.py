@@ -12,7 +12,7 @@ from encryption import EncryptedRoute
 
 router = APIRouter(route_class=EncryptedRoute)
 
-ONLINE_THRESHOLD_MINUTES = 5
+ONLINE_THRESHOLD_MINUTES = 1
 
 
 from models import Alert
@@ -342,7 +342,7 @@ async def aggregate_dashboard(
             branch_map[b.id] = {"branch": b, "snaps": []}
         branch_map[b.id]["snaps"].append(snap)
 
-    online_cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
+    online_cutoff = datetime.now(timezone.utc) - timedelta(minutes=ONLINE_THRESHOLD_MINUTES)
     
     synced_ids = set()
 

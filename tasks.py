@@ -85,6 +85,16 @@ async def check_offline_branches():
                             
                         elif not is_offline and branch.offline_notified:
                             # Came back online
+                            users_result = await db.execute(select(User).options(selectinload(User.branches)).where(User.company_id == branch.company_id))
+                            users = users_result.scalars().all()
+                            for u in users:
+                                if u.is_superadmin or branch.id in [b.id for b in u.branches]:
+                                    if u.fcm_token:
+                                        await send_push_notification(
+                                            u.fcm_token,
+                                            "تم استعادة الاتصال",
+                                            f"الفرع '{branch.name}' عاد للاتصال بالإنترنت بنجاح."
+                                        )
                             branch.offline_notified = False
                             
                 await db.commit()

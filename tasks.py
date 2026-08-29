@@ -70,7 +70,12 @@ async def check_offline_branches():
                         if is_offline and not branch.offline_notified:
                             # Went offline, notify users
                             from sqlalchemy.orm import selectinload
-                            users_result = await db.execute(select(User).options(selectinload(User.branches)).where(User.company_id == branch.company_id))
+                            from sqlalchemy import or_
+                            users_result = await db.execute(
+                                select(User).options(selectinload(User.branches)).where(
+                                    or_(User.company_id == branch.company_id, User.is_superadmin == True)
+                                )
+                            )
                             users = users_result.scalars().all()
                             for u in users:
                                 # Check if user has access to this branch
@@ -85,7 +90,11 @@ async def check_offline_branches():
                             
                         elif not is_offline and branch.offline_notified:
                             # Came back online
-                            users_result = await db.execute(select(User).options(selectinload(User.branches)).where(User.company_id == branch.company_id))
+                            users_result = await db.execute(
+                                select(User).options(selectinload(User.branches)).where(
+                                    or_(User.company_id == branch.company_id, User.is_superadmin == True)
+                                )
+                            )
                             users = users_result.scalars().all()
                             for u in users:
                                 if u.is_superadmin or branch.id in [b.id for b in u.branches]:

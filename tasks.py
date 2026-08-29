@@ -1,7 +1,8 @@
 import asyncio
 from datetime import datetime, timezone, timedelta
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from database import AsyncSessionLocal
 from models import Company, User
 from push_notifications import send_push_notification
@@ -69,8 +70,6 @@ async def check_offline_branches():
                         
                         if is_offline and not branch.offline_notified:
                             # Went offline, notify users
-                            from sqlalchemy.orm import selectinload
-                            from sqlalchemy import or_
                             users_result = await db.execute(
                                 select(User).options(selectinload(User.branches)).where(
                                     or_(User.company_id == branch.company_id, User.is_superadmin == True)

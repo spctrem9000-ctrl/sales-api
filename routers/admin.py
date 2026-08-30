@@ -1,12 +1,12 @@
 import uuid
 from typing import List, Optional
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from database import get_db
 from models import User, Company, Branch, SaleSnapshot
@@ -41,6 +41,7 @@ class CompanyUpdate(BaseModel):
     auto_remind: Optional[bool] = None
 
 class CompanyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     name: str
     api_key: str
@@ -67,6 +68,7 @@ class UserUpdate(BaseModel):
     branch_ids: Optional[List[int]] = None
 
 class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     username: str
     created_at: datetime
@@ -74,6 +76,7 @@ class UserResponse(BaseModel):
     branch_ids: List[int] = []
 
 class BranchResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     name: str
     created_at: datetime

@@ -75,11 +75,13 @@ async def check_offline_branches():
                                     or_(User.company_id == branch.company_id, User.is_superadmin == True)
                                 )
                             )
-                            users = users_result.scalars().all()
+                            users = users_result.scalars().unique().all()
+                            sent_tokens = set()
                             for u in users:
                                 # Check if user has access to this branch
                                 if u.is_superadmin or branch.id in [b.id for b in u.branches]:
-                                    if u.fcm_token:
+                                    if u.fcm_token and u.fcm_token not in sent_tokens:
+                                        sent_tokens.add(u.fcm_token)
                                         await send_push_notification(
                                             u.fcm_token,
                                             "تحذير: انقطاع الاتصال",
@@ -94,10 +96,12 @@ async def check_offline_branches():
                                     or_(User.company_id == branch.company_id, User.is_superadmin == True)
                                 )
                             )
-                            users = users_result.scalars().all()
+                            users = users_result.scalars().unique().all()
+                            sent_tokens = set()
                             for u in users:
                                 if u.is_superadmin or branch.id in [b.id for b in u.branches]:
-                                    if u.fcm_token:
+                                    if u.fcm_token and u.fcm_token not in sent_tokens:
+                                        sent_tokens.add(u.fcm_token)
                                         await send_push_notification(
                                             u.fcm_token,
                                             "تم استعادة الاتصال",

@@ -498,7 +498,7 @@ async def sync_alerts(
                         for item in inv.items
                     ]
 
-                    alert.is_read = 0
+                    alert.is_read = False
 
                     has_changes = True
 
@@ -524,7 +524,7 @@ async def sync_alerts(
                     disc_perc=inv.disc_perc,
                     net_val=inv.net_val,
 
-                    is_read=0,
+                    is_read=False,
 
                     invoice_items=[
                         item.model_dump()

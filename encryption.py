@@ -9,8 +9,11 @@ from typing import Callable
 
 from Crypto.Random import get_random_bytes
 
-# 32 bytes key
-AES_KEY = os.getenv("AES_KEY", "b3A2j8v9F1s4kL7w2q5P0xN4c8m3V6z9").encode("utf-8")
+# 32 bytes key — MUST be set in environment
+_aes_key_str = os.getenv("AES_KEY")
+if not _aes_key_str:
+    raise ValueError("AES_KEY environment variable must be set! (32 bytes)")
+AES_KEY = _aes_key_str.encode("utf-8")
 
 def encrypt_payload(data: dict) -> str:
     json_str = json.dumps(data)

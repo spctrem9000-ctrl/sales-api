@@ -32,6 +32,9 @@ user_branches = Table(
 class User(Base):
     """Single owner user for mobile login."""
     __tablename__ = "users"
+    __table_args__ = (
+        Index("ix_user_company", "company_id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)

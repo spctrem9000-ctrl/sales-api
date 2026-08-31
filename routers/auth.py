@@ -62,6 +62,8 @@ async def test_fcm(
     current_user: User = Depends(get_current_user)
 ):
     """مسار تجريبي لإرسال إشعار لكل الأجهزة المسجلة"""
+    if not current_user.is_superadmin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Super Admin privileges required.")
     users_res = await db.execute(select(User).where(User.fcm_token != None))
     tokens = [u.fcm_token for u in users_res.scalars().all() if u.fcm_token]
     

@@ -52,14 +52,18 @@ async def lifespan(app: FastAPI):
             
             result = await db.execute(select(User).where(User.username == "super_admin"))
             if not result.scalars().first():
-                super_admin = User(
-                    username="super_admin",
-                    hashed_password=hash_password(os.getenv("SUPER_ADMIN_PASSWORD", "Kareemsobhy@20")),
-                    is_superadmin=True
-                )
-                db.add(super_admin)
-                await db.commit()
-                logger.info("Super Admin account created.")
+                _sa_pw = os.getenv("SUPER_ADMIN_PASSWORD")
+                if not _sa_pw:
+                    logger.error("SUPER_ADMIN_PASSWORD env var is not set. Super Admin will NOT be created.")
+                else:
+                    super_admin = User(
+                        username="super_admin",
+                        hashed_password=hash_password(_sa_pw),
+                        is_superadmin=True
+                    )
+                    db.add(super_admin)
+                    await db.commit()
+                    logger.info("Super Admin account created.")
     except Exception as e:
         logger.error(f"Failed to recreate database: {e}")
 

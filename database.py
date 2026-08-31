@@ -83,8 +83,12 @@ async def init_db():
         "ALTER TABLE alerts ADD disc_val FLOAT DEFAULT 0.0;",
         "ALTER TABLE alerts ADD net_val FLOAT DEFAULT 0.0;",
         "UPDATE sale_snapshots SET business_date = TO_CHAR(snapshot_time, 'YYYY-MM-DD') WHERE business_date IS NULL;",
-        "INSERT INTO user_branches (user_id, branch_id) SELECT u.id, b.id FROM users u JOIN branches b ON u.company_id = b.company_id WHERE u.is_superadmin = FALSE ON CONFLICT DO NOTHING;",
-        "ALTER TABLE branches ADD offline_notified BOOLEAN DEFAULT FALSE;"
+        # REMOVED: was auto-linking all users to all company branches on every restart,
+        # which overrode any manual branch permission changes.
+        # "INSERT INTO user_branches (user_id, branch_id) SELECT u.id, b.id FROM users u JOIN branches b ON u.company_id = b.company_id WHERE u.is_superadmin = FALSE ON CONFLICT DO NOTHING;",
+        "ALTER TABLE branches ADD offline_notified BOOLEAN DEFAULT FALSE;",
+        "DELETE FROM sale_snapshots WHERE id NOT IN (SELECT MAX(id) FROM sale_snapshots GROUP BY branch_id, day_id);",
+        "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'ix_snapshot_branch_day') THEN CREATE UNIQUE INDEX ix_snapshot_branch_day ON sale_snapshots (branch_id, day_id); END IF; END $$;",
     ]
     
     for query in migrations:

@@ -32,6 +32,16 @@ class SyncPayload(BaseModel):
     net_total:        float
     visa_total:       float
     
+    cash_total:       float = 0.0
+    wallet_total:     float = 0.0
+    insta_total:      float = 0.0
+    hos_total:        float = 0.0
+    credit_total:     float = 0.0
+    visa_tip_total:   float = 0.0
+    tax_total:        float = 0.0
+    expenses_total:   float = 0.0
+    void_total:       float = 0.0
+    
     takeaway_count:   int
     takeaway_total:   float
     delivery_count:   int
@@ -84,6 +94,16 @@ class BranchSummary(BaseModel):
     net_total:        float
     visa_total:       float
     
+    cash_total:       float = 0.0
+    wallet_total:     float = 0.0
+    insta_total:      float = 0.0
+    hos_total:        float = 0.0
+    credit_total:     float = 0.0
+    visa_tip_total:   float = 0.0
+    tax_total:        float = 0.0
+    expenses_total:   float = 0.0
+    void_total:       float = 0.0
+    
     takeaway_count:   int
     takeaway_total:   float
     delivery_count:   int
@@ -106,6 +126,16 @@ class DashboardResponse(BaseModel):
     grand_net_total:        float
     grand_visa_total:       float
     
+    grand_cash_total:       float = 0.0
+    grand_wallet_total:     float = 0.0
+    grand_insta_total:      float = 0.0
+    grand_hos_total:        float = 0.0
+    grand_credit_total:     float = 0.0
+    grand_visa_tip_total:   float = 0.0
+    grand_tax_total:        float = 0.0
+    grand_expenses_total:   float = 0.0
+    grand_void_total:       float = 0.0
+    
     grand_takeaway_count:   int
     grand_takeaway_total:   float
     grand_delivery_count:   int
@@ -127,6 +157,17 @@ class HistoryBranchBreakdown(BaseModel):
     branch_name: str
     net_total: float
     visa_total: float
+    
+    cash_total: float = 0.0
+    wallet_total: float = 0.0
+    insta_total: float = 0.0
+    hos_total: float = 0.0
+    credit_total: float = 0.0
+    visa_tip_total: float = 0.0
+    tax_total: float = 0.0
+    expenses_total: float = 0.0
+    void_total: float = 0.0
+    
     takeaway_total: float
     delivery_total: float
     dlv_service_total: float
@@ -137,6 +178,17 @@ class HistoryDaySummary(BaseModel):
     business_date: str
     net_total: float
     visa_total: float
+    
+    cash_total: float = 0.0
+    wallet_total: float = 0.0
+    insta_total: float = 0.0
+    hos_total: float = 0.0
+    credit_total: float = 0.0
+    visa_tip_total: float = 0.0
+    tax_total: float = 0.0
+    expenses_total: float = 0.0
+    void_total: float = 0.0
+    
     takeaway_total: float
     delivery_total: float
     dlv_service_total: float

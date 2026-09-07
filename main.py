@@ -3,8 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from database import init_db
+from database import init_db, get_db
 from routers import auth, sync, dashboard, admin, fix_db
 from websocket_manager import manager
 
@@ -164,7 +165,7 @@ async def health():
     return {"status": "healthy"}
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, db: AsyncSession = Depends(get_db)):
     logger.info("New WebSocket connection attempt")
     # Accept the connection first to read headers, or read headers before accept
     auth_header = websocket.headers.get("authorization")
@@ -184,11 +185,22 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
         
-    await manager.connect(websocket)
-    logger.info("WebSocket connected!")
+    from sqlalchemy import select
+    from models import User
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalar_one_or_none()
+    
+    if not user or user.company_id is None:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+        
+    company_id = user.company_id
+        
+    await manager.connect(websocket, company_id)
+    logger.info(f"WebSocket connected for company {company_id}!")
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        print("WebSocket disconnected")
-        manager.disconnect(websocket)
+        print(f"WebSocket disconnected for company {company_id}")
+        manager.disconnect(websocket, company_id)

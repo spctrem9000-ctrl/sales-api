@@ -202,81 +202,73 @@ async def sync_sales(
     )
 
     # --------------------------------------------------------
-    # Find existing snapshot
+    # UPSERT SaleSnapshot
     # --------------------------------------------------------
 
-    res = await db.execute(
-        select(SaleSnapshot).where(
-            SaleSnapshot.branch_id == branch.id,
-            SaleSnapshot.day_id == payload.day_id
+    values_to_upsert = {
+        "branch_id": branch.id,
+        "day_id": payload.day_id,
+        "gross_total": payload.gross_total,
+        "disc_value": payload.disc_value,
+        "disc_lines_value": payload.disc_lines_value,
+        "net_total": payload.net_total,
+        "visa_total": payload.visa_total,
+        
+        "cash_total": payload.cash_total,
+        "wallet_total": payload.wallet_total,
+        "insta_total": payload.insta_total,
+        "hos_total": payload.hos_total,
+        "credit_total": payload.credit_total,
+        "visa_tip_total": payload.visa_tip_total,
+        "tax_total": payload.tax_total,
+        "expenses_total": payload.expenses_total,
+        "void_total": payload.void_total,
+        
+        "takeaway_count": payload.takeaway_count,
+        "takeaway_total": payload.takeaway_total,
+        "delivery_count": payload.delivery_count,
+        "delivery_total": payload.delivery_total,
+        "dlv_service_total": payload.dlv_service_total,
+        "order_count": payload.order_count,
+        "business_date": payload.business_date,
+        "metrics_json": payload.metrics_json,
+        "snapshot_time": datetime.now(timezone.utc).replace(tzinfo=None)
+    }
+
+    from database import engine
+    dialect = engine.dialect.name
+
+    if dialect == "postgresql":
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+        stmt = pg_insert(SaleSnapshot).values(**values_to_upsert)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["branch_id", "day_id"],
+            set_=values_to_upsert
         )
-    )
-
-    snapshot = res.scalar_one_or_none()
-
-    # --------------------------------------------------------
-    # Update existing snapshot
-    # --------------------------------------------------------
-
-    if snapshot:
-
-        snapshot.gross_total = payload.gross_total
-        snapshot.disc_value = payload.disc_value
-        snapshot.disc_lines_value = payload.disc_lines_value
-        snapshot.net_total = payload.net_total
-        snapshot.visa_total = payload.visa_total
-
-        snapshot.takeaway_count = payload.takeaway_count
-        snapshot.takeaway_total = payload.takeaway_total
-
-        snapshot.delivery_count = payload.delivery_count
-        snapshot.delivery_total = payload.delivery_total
-
-        snapshot.dlv_service_total = payload.dlv_service_total
-
-        snapshot.order_count = payload.order_count
-        snapshot.business_date = payload.business_date
-
-        snapshot.metrics_json = payload.metrics_json
-
-        snapshot.snapshot_time = (
-            datetime.now(timezone.utc)
-            .replace(tzinfo=None)
+        await db.execute(stmt)
+    elif dialect == "sqlite":
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+        stmt = sqlite_insert(SaleSnapshot).values(**values_to_upsert)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["branch_id", "day_id"],
+            set_=values_to_upsert
         )
-
-    # --------------------------------------------------------
-    # Create new snapshot
-    # --------------------------------------------------------
-
+        await db.execute(stmt)
     else:
-
-        snapshot = SaleSnapshot(
-            branch_id=branch.id,
-            day_id=payload.day_id,
-
-            gross_total=payload.gross_total,
-            disc_value=payload.disc_value,
-            disc_lines_value=payload.disc_lines_value,
-
-            net_total=payload.net_total,
-            visa_total=payload.visa_total,
-
-            takeaway_count=payload.takeaway_count,
-            takeaway_total=payload.takeaway_total,
-
-            delivery_count=payload.delivery_count,
-            delivery_total=payload.delivery_total,
-
-            dlv_service_total=payload.dlv_service_total,
-
-            order_count=payload.order_count,
-
-            business_date=payload.business_date,
-
-            metrics_json=payload.metrics_json,
+        # Fallback for any other dialect (shouldn't happen in production)
+        res = await db.execute(
+            select(SaleSnapshot).where(
+                SaleSnapshot.branch_id == branch.id,
+                SaleSnapshot.day_id == payload.day_id
+            )
         )
-
-        db.add(snapshot)
+        snapshot = res.scalar_one_or_none()
+        if snapshot:
+            for k, v in values_to_upsert.items():
+                setattr(snapshot, k, v)
+        else:
+            snapshot = SaleSnapshot(**values_to_upsert)
+            db.add(snapshot)
 
     # --------------------------------------------------------
     # Update last seen
@@ -293,7 +285,8 @@ async def sync_sales(
     # Notify connected mobile apps
     # --------------------------------------------------------
 
-    await manager.broadcast(
+    await manager.broadcast_to_company(
+        branch.company_id,
         {"event": "refresh_dashboard"}
     )
 
@@ -499,44 +492,67 @@ async def sync_alerts(
                     ]
 
                     alert.is_read = False
+                    alert.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
                     has_changes = True
 
                     new_alerts_list.append(alert)
 
             # ------------------------------------------------
-            # New alert
+            # New alert (UPSERT to avoid concurrency errors)
             # ------------------------------------------------
 
             else:
 
-                new_alert = Alert(
-                    branch_id=branch.id,
+                invoice_items_dump = [
+                    item.model_dump()
+                    for item in inv.items
+                ]
 
-                    # Supabase column is VARCHAR
-                    ih_serial=str(inv.ih_serial),
-
-                    ih_code=inv.ih_code,
-                    order_date=inv.order_date,
-
-                    total=inv.total,
-                    disc_val=inv.disc_val,
-                    disc_perc=inv.disc_perc,
-                    net_val=inv.net_val,
-
-                    is_read=False,
-
-                    invoice_items=[
-                        item.model_dump()
-                        for item in inv.items
-                    ]
-                )
-
-                db.add(new_alert)
-
-                has_changes = True
-
-                new_alerts_list.append(new_alert)
+                values_to_upsert = {
+                    "branch_id": branch.id,
+                    "ih_serial": str(inv.ih_serial),
+                    "ih_code": inv.ih_code,
+                    "order_date": inv.order_date,
+                    "total": inv.total,
+                    "disc_val": inv.disc_val,
+                    "disc_perc": inv.disc_perc,
+                    "net_val": inv.net_val,
+                    "is_read": False,
+                    "invoice_items": invoice_items_dump,
+                    "updated_at": datetime.now(timezone.utc).replace(tzinfo=None)
+                }
+                
+                from database import engine
+                dialect = engine.dialect.name
+                
+                if dialect == "postgresql":
+                    from sqlalchemy.dialects.postgresql import insert as pg_insert
+                    stmt = pg_insert(Alert).values(**values_to_upsert)
+                    stmt = stmt.on_conflict_do_nothing(
+                        index_elements=["branch_id", "ih_serial"]
+                    ).returning(Alert)
+                    res = await db.execute(stmt)
+                    new_alert = res.scalar_one_or_none()
+                    if new_alert:
+                        has_changes = True
+                        new_alerts_list.append(new_alert)
+                elif dialect == "sqlite":
+                    from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+                    stmt = sqlite_insert(Alert).values(**values_to_upsert)
+                    stmt = stmt.on_conflict_do_nothing(
+                        index_elements=["branch_id", "ih_serial"]
+                    ).returning(Alert)
+                    res = await db.execute(stmt)
+                    new_alert = res.scalar_one_or_none()
+                    if new_alert:
+                        has_changes = True
+                        new_alerts_list.append(new_alert)
+                else:
+                    new_alert = Alert(**values_to_upsert)
+                    db.add(new_alert)
+                    has_changes = True
+                    new_alerts_list.append(new_alert)
 
     # --------------------------------------------------------
     # Commit changes
@@ -593,7 +609,8 @@ async def sync_alerts(
             )
 
         # Trigger UI refresh
-        await manager.broadcast(
+        await manager.broadcast_to_company(
+            branch.company_id,
             {"event": "refresh_dashboard"}
         )
 
@@ -616,6 +633,7 @@ async def sync_alerts(
 async def get_sync_state(
     branch_name: str,
     full_sync: str = "false",
+    revision: str = None,
     db: AsyncSession = Depends(get_db),
     x_api_key: str = Header(..., alias="X-API-Key"),
     x_device_id: str = Header(..., alias="X-Device-ID"),
@@ -636,86 +654,107 @@ async def get_sync_state(
         .replace(tzinfo=None)
     )
 
-    # --------------------------------------------------------
-    # Fetch snapshots
-    # --------------------------------------------------------
-
     from sqlalchemy import func
     from datetime import timedelta
+    import json
 
     is_full_sync = full_sync.lower() == "true"
     days_back = 31 if is_full_sync else 2
     cutoff_datetime = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_back)
     cutoff_date_str = cutoff_datetime.strftime("%Y-%m-%d")
 
-    base_subq = select(
-        SaleSnapshot.day_id,
-        func.max(SaleSnapshot.id).label("max_id")
-    ).where(
-        SaleSnapshot.branch_id == branch.id,
-        SaleSnapshot.business_date >= cutoff_date_str
-    )
+    # --------------------------------------------------------
+    # Calculate Revision ETag
+    # --------------------------------------------------------
 
-    subq = base_subq.group_by(SaleSnapshot.day_id).subquery()
-
-    result = await db.execute(
-
-        select(SaleSnapshot)
-        .join(
-            subq,
-            SaleSnapshot.id == subq.c.max_id
+    agg_res = await db.execute(
+        select(
+            func.count(SaleSnapshot.id),
+            func.max(SaleSnapshot.snapshot_time)
+        ).where(
+            SaleSnapshot.branch_id == branch.id,
+            SaleSnapshot.business_date >= cutoff_date_str
         )
     )
+    snap_count, snap_max_time = agg_res.one()
 
+    alert_agg_res = await db.execute(
+        select(
+            func.count(Alert.id),
+            func.max(Alert.updated_at)
+        ).where(
+            Alert.branch_id == branch.id,
+            Alert.created_at >= cutoff_datetime
+        )
+    )
+    alert_count, alert_max_time = alert_agg_res.one()
+
+    snap_max_str = str(snap_max_time) if snap_max_time else "0"
+    alert_max_str = str(alert_max_time) if alert_max_time else "0"
+
+    current_revision = f"{snap_count}-{snap_max_str}-{alert_count}-{alert_max_str}-{branch.max_disc_perc}-{branch.is_active}-{full_sync.lower()}"
+
+    if revision == current_revision:
+        await db.commit()
+        return {
+            "is_active": branch.is_active,
+            "max_disc_perc": branch.max_disc_perc,
+            "changed": False,
+            "revision": current_revision
+        }
+
+    # --------------------------------------------------------
+    # Fetch snapshots (Optimized: No Group By or Subqueries)
+    # --------------------------------------------------------
+
+    result = await db.execute(
+        select(SaleSnapshot)
+        .where(
+            SaleSnapshot.branch_id == branch.id,
+            SaleSnapshot.business_date >= cutoff_date_str
+        )
+    )
     snapshots = result.scalars().all()
 
     shifts = {}
 
-    import json
-
     for s in snapshots:
-
         day_flag = 0
-
         if s.metrics_json:
-
             try:
                 if isinstance(s.metrics_json, dict):
                     metrics = s.metrics_json
                 else:
                     metrics = json.loads(s.metrics_json)
-
-                day_flag = (
-                    0
-                    if metrics.get("is_closed")
-                    else 1
-                )
-            except Exception as e:
+                day_flag = 0 if metrics.get("is_closed") else 1
+            except Exception:
                 pass
 
         shifts[str(s.day_id)] = {
-
             "day_id": s.day_id,
-
             "gross_total": s.gross_total,
             "disc_value": s.disc_value,
             "disc_lines_value": s.disc_lines_value,
-
             "net_total": s.net_total,
             "visa_total": s.visa_total,
-
+            
+            "cash_total": s.cash_total,
+            "wallet_total": s.wallet_total,
+            "insta_total": s.insta_total,
+            "hos_total": s.hos_total,
+            "credit_total": s.credit_total,
+            "visa_tip_total": s.visa_tip_total,
+            "tax_total": s.tax_total,
+            "expenses_total": s.expenses_total,
+            "void_total": s.void_total,
+            
             "takeaway_count": s.takeaway_count,
             "takeaway_total": s.takeaway_total,
-
             "delivery_count": s.delivery_count,
             "delivery_total": s.delivery_total,
-
             "dlv_service_total": s.dlv_service_total,
-
             "order_count": s.order_count,
-
             "business_date": s.business_date,
-
             "day_flag": day_flag,
         }
 
@@ -741,18 +780,16 @@ async def get_sync_state(
     await db.commit()
 
     # --------------------------------------------------------
-    # Return state
+    # Return full state
     # --------------------------------------------------------
 
     return {
-
         "max_disc_perc": branch.max_disc_perc,
-
         "is_active": branch.is_active,
-
         "shifts": shifts,
-
         "synced_alerts": synced_alerts,
+        "changed": True,
+        "revision": current_revision,
     }
 
 

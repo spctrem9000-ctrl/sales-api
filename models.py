@@ -99,6 +99,15 @@ class SaleSnapshot(Base):
     disc_lines_value: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     net_total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     visa_total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    cash_total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    wallet_total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    insta_total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    hos_total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    credit_total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    visa_tip_total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    tax_total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    expenses_total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    void_total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     
     # New breakdown fields
     takeaway_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -140,5 +149,6 @@ class Alert(Base):
     invoice_items: Mapped[list | None] = mapped_column(JSON, nullable=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     branch: Mapped["Branch"] = relationship(back_populates="alerts")

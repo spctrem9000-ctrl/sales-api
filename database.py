@@ -69,6 +69,17 @@ async def init_db():
         "ALTER TABLE sale_snapshots ADD delivery_count INTEGER DEFAULT 0;",
         "ALTER TABLE sale_snapshots ADD delivery_total FLOAT DEFAULT 0.0;",
         "ALTER TABLE sale_snapshots ADD dlv_service_total FLOAT DEFAULT 0.0;",
+        
+        "ALTER TABLE sale_snapshots ADD cash_total FLOAT DEFAULT 0.0;",
+        "ALTER TABLE sale_snapshots ADD wallet_total FLOAT DEFAULT 0.0;",
+        "ALTER TABLE sale_snapshots ADD insta_total FLOAT DEFAULT 0.0;",
+        "ALTER TABLE sale_snapshots ADD hos_total FLOAT DEFAULT 0.0;",
+        "ALTER TABLE sale_snapshots ADD credit_total FLOAT DEFAULT 0.0;",
+        "ALTER TABLE sale_snapshots ADD visa_tip_total FLOAT DEFAULT 0.0;",
+        "ALTER TABLE sale_snapshots ADD tax_total FLOAT DEFAULT 0.0;",
+        "ALTER TABLE sale_snapshots ADD expenses_total FLOAT DEFAULT 0.0;",
+        "ALTER TABLE sale_snapshots ADD void_total FLOAT DEFAULT 0.0;",
+        
         "ALTER TABLE sale_snapshots ADD metrics_json TEXT;",
         "ALTER TABLE sale_snapshots ADD business_date VARCHAR(50);",
         "ALTER TABLE branches ADD max_disc_perc FLOAT DEFAULT 5.0;",
@@ -87,8 +98,10 @@ async def init_db():
         # which overrode any manual branch permission changes.
         # "INSERT INTO user_branches (user_id, branch_id) SELECT u.id, b.id FROM users u JOIN branches b ON u.company_id = b.company_id WHERE u.is_superadmin = FALSE ON CONFLICT DO NOTHING;",
         "ALTER TABLE branches ADD offline_notified BOOLEAN DEFAULT FALSE;",
-        "DELETE FROM sale_snapshots WHERE id NOT IN (SELECT MAX(id) FROM sale_snapshots GROUP BY branch_id, day_id);",
-        "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'ix_snapshot_branch_day') THEN CREATE UNIQUE INDEX ix_snapshot_branch_day ON sale_snapshots (branch_id, day_id); END IF; END $$;",
+        "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'ix_snapshot_branch_day') THEN DELETE FROM sale_snapshots WHERE id NOT IN (SELECT MAX(id) FROM sale_snapshots GROUP BY branch_id, day_id); CREATE UNIQUE INDEX ix_snapshot_branch_day ON sale_snapshots (branch_id, day_id); END IF; END $$;",
+        "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'ix_alert_branch_ih_serial') THEN DELETE FROM alerts WHERE id NOT IN (SELECT MAX(id) FROM alerts GROUP BY branch_id, ih_serial); CREATE UNIQUE INDEX ix_alert_branch_ih_serial ON alerts (branch_id, ih_serial); END IF; END $$;",
+        "ALTER TABLE alerts ADD updated_at TIMESTAMP;",
+        "UPDATE alerts SET updated_at = created_at WHERE updated_at IS NULL;",
     ]
     
     for query in migrations:

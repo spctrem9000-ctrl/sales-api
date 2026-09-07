@@ -137,6 +137,15 @@ async def get_dashboard(
     grand_disc_l = 0.0
     grand_net = 0.0
     grand_visa = 0.0
+    grand_cash_total = 0.0
+    grand_wallet_total = 0.0
+    grand_insta_total = 0.0
+    grand_hos_total = 0.0
+    grand_credit_total = 0.0
+    grand_visa_tip_total = 0.0
+    grand_tax_total = 0.0
+    grand_expenses_total = 0.0
+    grand_void_total = 0.0
     grand_takeaway_count = 0
     grand_takeaway_total = 0.0
     grand_delivery_count = 0
@@ -167,6 +176,15 @@ async def get_dashboard(
         b_disc_lines = sum(s.disc_lines_value for s in snaps)
         b_net = sum(s.net_total for s in snaps)
         b_visa = sum(s.visa_total for s in snaps)
+        b_cash_total = sum(s.cash_total for s in snaps)
+        b_wallet_total = sum(s.wallet_total for s in snaps)
+        b_insta_total = sum(s.insta_total for s in snaps)
+        b_hos_total = sum(s.hos_total for s in snaps)
+        b_credit_total = sum(s.credit_total for s in snaps)
+        b_visa_tip_total = sum(s.visa_tip_total for s in snaps)
+        b_tax_total = sum(s.tax_total for s in snaps)
+        b_expenses_total = sum(s.expenses_total for s in snaps)
+        b_void_total = sum(s.void_total for s in snaps)
         b_takeaway_count = sum(s.takeaway_count for s in snaps)
         b_takeaway_total = sum(s.takeaway_total for s in snaps)
         b_delivery_count = sum(s.delivery_count for s in snaps)
@@ -190,6 +208,15 @@ async def get_dashboard(
                 disc_lines_value=b_disc_lines,
                 net_total=b_net,
                 visa_total=b_visa,
+                cash_total=b_cash_total,
+                wallet_total=b_wallet_total,
+                insta_total=b_insta_total,
+                hos_total=b_hos_total,
+                credit_total=b_credit_total,
+                visa_tip_total=b_visa_tip_total,
+                tax_total=b_tax_total,
+                expenses_total=b_expenses_total,
+                void_total=b_void_total,
                 takeaway_count=b_takeaway_count,
                 takeaway_total=b_takeaway_total,
                 delivery_count=b_delivery_count,
@@ -209,6 +236,15 @@ async def get_dashboard(
         grand_disc_l += b_disc_lines
         grand_net += b_net
         grand_visa += b_visa
+        grand_cash_total += b_cash_total
+        grand_wallet_total += b_wallet_total
+        grand_insta_total += b_insta_total
+        grand_hos_total += b_hos_total
+        grand_credit_total += b_credit_total
+        grand_visa_tip_total += b_visa_tip_total
+        grand_tax_total += b_tax_total
+        grand_expenses_total += b_expenses_total
+        grand_void_total += b_void_total
         grand_takeaway_count += b_takeaway_count
         grand_takeaway_total += b_takeaway_total
         grand_delivery_count += b_delivery_count
@@ -241,6 +277,7 @@ async def get_dashboard(
                     disc_lines_value=0.0,
                     net_total=0.0,
                     visa_total=0.0,
+                    cash_total=0.0, wallet_total=0.0, insta_total=0.0, hos_total=0.0, credit_total=0.0, visa_tip_total=0.0, tax_total=0.0, expenses_total=0.0, void_total=0.0,
                     takeaway_count=0, takeaway_total=0.0,
                     delivery_count=0, delivery_total=0.0,
                     dlv_service_total=0.0,
@@ -261,6 +298,15 @@ async def get_dashboard(
         grand_disc_lines=grand_disc_l,
         grand_net_total=grand_net,
         grand_visa_total=grand_visa,
+        grand_cash_total=grand_cash_total,
+        grand_wallet_total=grand_wallet_total,
+        grand_insta_total=grand_insta_total,
+        grand_hos_total=grand_hos_total,
+        grand_credit_total=grand_credit_total,
+        grand_visa_tip_total=grand_visa_tip_total,
+        grand_tax_total=grand_tax_total,
+        grand_expenses_total=grand_expenses_total,
+        grand_void_total=grand_void_total,
         grand_takeaway_count=grand_takeaway_count,
         grand_takeaway_total=grand_takeaway_total,
         grand_delivery_count=grand_delivery_count,
@@ -318,6 +364,15 @@ async def aggregate_dashboard(
     grand_disc_l = 0.0
     grand_net = 0.0
     grand_visa = 0.0
+    grand_cash_total = 0.0
+    grand_wallet_total = 0.0
+    grand_insta_total = 0.0
+    grand_hos_total = 0.0
+    grand_credit_total = 0.0
+    grand_visa_tip_total = 0.0
+    grand_tax_total = 0.0
+    grand_expenses_total = 0.0
+    grand_void_total = 0.0
     grand_takeaway_count = 0
     grand_takeaway_total = 0.0
     grand_delivery_count = 0
@@ -351,6 +406,15 @@ async def aggregate_dashboard(
         b_disc_lines = sum(s.disc_lines_value for s in snaps)
         b_net = sum(s.net_total for s in snaps)
         b_visa = sum(s.visa_total for s in snaps)
+        b_cash_total = sum(s.cash_total for s in snaps)
+        b_wallet_total = sum(s.wallet_total for s in snaps)
+        b_insta_total = sum(s.insta_total for s in snaps)
+        b_hos_total = sum(s.hos_total for s in snaps)
+        b_credit_total = sum(s.credit_total for s in snaps)
+        b_visa_tip_total = sum(s.visa_tip_total for s in snaps)
+        b_tax_total = sum(s.tax_total for s in snaps)
+        b_expenses_total = sum(s.expenses_total for s in snaps)
+        b_void_total = sum(s.void_total for s in snaps)
         b_takeaway_count = sum(s.takeaway_count for s in snaps)
         b_takeaway_total = sum(s.takeaway_total for s in snaps)
         b_delivery_count = sum(s.delivery_count for s in snaps)
@@ -374,6 +438,15 @@ async def aggregate_dashboard(
                 disc_lines_value=b_disc_lines,
                 net_total=b_net,
                 visa_total=b_visa,
+                cash_total=b_cash_total,
+                wallet_total=b_wallet_total,
+                insta_total=b_insta_total,
+                hos_total=b_hos_total,
+                credit_total=b_credit_total,
+                visa_tip_total=b_visa_tip_total,
+                tax_total=b_tax_total,
+                expenses_total=b_expenses_total,
+                void_total=b_void_total,
                 takeaway_count=b_takeaway_count,
                 takeaway_total=b_takeaway_total,
                 delivery_count=b_delivery_count,
@@ -393,6 +466,15 @@ async def aggregate_dashboard(
         grand_disc_l += b_disc_lines
         grand_net += b_net
         grand_visa += b_visa
+        grand_cash_total += b_cash_total
+        grand_wallet_total += b_wallet_total
+        grand_insta_total += b_insta_total
+        grand_hos_total += b_hos_total
+        grand_credit_total += b_credit_total
+        grand_visa_tip_total += b_visa_tip_total
+        grand_tax_total += b_tax_total
+        grand_expenses_total += b_expenses_total
+        grand_void_total += b_void_total
         grand_takeaway_count += b_takeaway_count
         grand_takeaway_total += b_takeaway_total
         grand_delivery_count += b_delivery_count
@@ -425,6 +507,7 @@ async def aggregate_dashboard(
                     disc_lines_value=0.0,
                     net_total=0.0,
                     visa_total=0.0,
+                    cash_total=0.0, wallet_total=0.0, insta_total=0.0, hos_total=0.0, credit_total=0.0, visa_tip_total=0.0, tax_total=0.0, expenses_total=0.0, void_total=0.0,
                     takeaway_count=0, takeaway_total=0.0,
                     delivery_count=0, delivery_total=0.0,
                     dlv_service_total=0.0,
@@ -445,6 +528,15 @@ async def aggregate_dashboard(
         grand_disc_lines=grand_disc_l,
         grand_net_total=grand_net,
         grand_visa_total=grand_visa,
+        grand_cash_total=grand_cash_total,
+        grand_wallet_total=grand_wallet_total,
+        grand_insta_total=grand_insta_total,
+        grand_hos_total=grand_hos_total,
+        grand_credit_total=grand_credit_total,
+        grand_visa_tip_total=grand_visa_tip_total,
+        grand_tax_total=grand_tax_total,
+        grand_expenses_total=grand_expenses_total,
+        grand_void_total=grand_void_total,
         grand_takeaway_count=grand_takeaway_count,
         grand_takeaway_total=grand_takeaway_total,
         grand_delivery_count=grand_delivery_count,
@@ -506,13 +598,22 @@ async def get_history(
         if branch.name not in daily_data[b_date]:
             daily_data[b_date][branch.name] = {
                 "branch_name": branch.name,
-                "net_total": 0.0, "visa_total": 0.0, 
+                "net_total": 0.0, "visa_total": 0.0, "cash_total": 0.0, "wallet_total": 0.0, "insta_total": 0.0, "hos_total": 0.0, "credit_total": 0.0, "visa_tip_total": 0.0, "tax_total": 0.0, "expenses_total": 0.0, "void_total": 0.0,
                 "takeaway_total": 0.0, "delivery_total": 0.0, "dlv_service_total": 0.0,
                 "order_count": 0, "metrics": {}
             }
             
         daily_data[b_date][branch.name]["net_total"] += snap.net_total
         daily_data[b_date][branch.name]["visa_total"] += snap.visa_total
+        daily_data[b_date][branch.name]["cash_total"] += snap.cash_total
+        daily_data[b_date][branch.name]["wallet_total"] += snap.wallet_total
+        daily_data[b_date][branch.name]["insta_total"] += snap.insta_total
+        daily_data[b_date][branch.name]["hos_total"] += snap.hos_total
+        daily_data[b_date][branch.name]["credit_total"] += snap.credit_total
+        daily_data[b_date][branch.name]["visa_tip_total"] += snap.visa_tip_total
+        daily_data[b_date][branch.name]["tax_total"] += snap.tax_total
+        daily_data[b_date][branch.name]["expenses_total"] += snap.expenses_total
+        daily_data[b_date][branch.name]["void_total"] += snap.void_total
         daily_data[b_date][branch.name]["takeaway_total"] += snap.takeaway_total
         daily_data[b_date][branch.name]["delivery_total"] += snap.delivery_total
         daily_data[b_date][branch.name]["dlv_service_total"] += snap.dlv_service_total
@@ -525,6 +626,15 @@ async def get_history(
     for b_date, branches_dict in sorted(daily_data.items(), key=lambda x: x[0], reverse=True):
         day_net = 0.0
         day_visa = 0.0
+        day_cash_total = 0.0
+        day_wallet_total = 0.0
+        day_insta_total = 0.0
+        day_hos_total = 0.0
+        day_credit_total = 0.0
+        day_visa_tip_total = 0.0
+        day_tax_total = 0.0
+        day_expenses_total = 0.0
+        day_void_total = 0.0
         day_takeaway = 0.0
         day_delivery = 0.0
         day_dlv_service = 0.0
@@ -534,6 +644,15 @@ async def get_history(
         for b_name, b_totals in branches_dict.items():
             day_net += b_totals["net_total"]
             day_visa += b_totals["visa_total"]
+            day_cash_total += b_totals["cash_total"]
+            day_wallet_total += b_totals["wallet_total"]
+            day_insta_total += b_totals["insta_total"]
+            day_hos_total += b_totals["hos_total"]
+            day_credit_total += b_totals["credit_total"]
+            day_visa_tip_total += b_totals["visa_tip_total"]
+            day_tax_total += b_totals["tax_total"]
+            day_expenses_total += b_totals["expenses_total"]
+            day_void_total += b_totals["void_total"]
             day_takeaway += b_totals["takeaway_total"]
             day_delivery += b_totals["delivery_total"]
             day_dlv_service += b_totals["dlv_service_total"]
@@ -545,6 +664,15 @@ async def get_history(
                 "branch_name": b_name,
                 "net_total": b_totals["net_total"],
                 "visa_total": b_totals["visa_total"],
+                "cash_total": b_totals["cash_total"],
+                "wallet_total": b_totals["wallet_total"],
+                "insta_total": b_totals["insta_total"],
+                "hos_total": b_totals["hos_total"],
+                "credit_total": b_totals["credit_total"],
+                "visa_tip_total": b_totals["visa_tip_total"],
+                "tax_total": b_totals["tax_total"],
+                "expenses_total": b_totals["expenses_total"],
+                "void_total": b_totals["void_total"],
                 "takeaway_total": b_totals["takeaway_total"],
                 "delivery_total": b_totals["delivery_total"],
                 "dlv_service_total": b_totals["dlv_service_total"],
@@ -558,6 +686,15 @@ async def get_history(
             "business_date": b_date,
             "net_total": day_net,
             "visa_total": day_visa,
+            "cash_total": day_cash_total,
+            "wallet_total": day_wallet_total,
+            "insta_total": day_insta_total,
+            "hos_total": day_hos_total,
+            "credit_total": day_credit_total,
+            "visa_tip_total": day_visa_tip_total,
+            "tax_total": day_tax_total,
+            "expenses_total": day_expenses_total,
+            "void_total": day_void_total,
             "takeaway_total": day_takeaway,
             "delivery_total": day_delivery,
             "dlv_service_total": day_dlv_service,
